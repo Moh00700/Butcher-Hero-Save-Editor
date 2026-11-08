@@ -516,15 +516,15 @@ const USER_TAB_KEEP = new Set([
   'user/crystal_pass_purchase_time',
   'user/chaotic_soul_offer_purchase_time',
 ]);
-const GROUP_TITLES = { blacksmith: 'Black Smith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Souls' };
+const GROUP_TITLES = { blacksmith: 'Black Smith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Souls', boss_tower: 'Boss Tower' };
 function groupTitleFor(path){
   if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Black Smith Sharpening';
   if (path === 'currency/balances/blacksmith.coins') return 'Black Smith Sharpening';
   if (path === 'ab_tests/tests/level_pass') return 'level_pass';
   // Crystal System: the three crystal currencies live here, not in Souls.
   if (path === 'currency/balances/crystal.geodes' || path === 'currency/balances/crystal.enchantment_stones' || path === 'currency/balances/crystal.magic_dust') return 'Crystal System';
-  // Tower Tickets live in the Player tab.
-  if (path === 'currency/balances/boss_tower.tickets') return 'player';
+  // Tower Tickets live in the Boss Tower tab.
+  if (path === 'currency/balances/boss_tower.tickets') return 'Boss Tower';
   const g = path.includes('/') ? path.slice(0, path.indexOf('/')) : '(top level)';
   return GROUP_TITLES[g] || g;
 }
@@ -543,7 +543,8 @@ function listFields(b, root) {
     } else if (kind === 'int' || kind === 'float' || kind === 'bool' || (kind === 'str' && isEditableStr(prefix.join('/')))) {
       const pth = prefix.join('/');
       // Hidden from the UI (see HIDDEN_FIELDS) - never listed.
-      if (HIDDEN_FIELDS.has(pth)) {
+      // Boss Tower tab keeps only floor progress (bosses/*/floor) — hide the rest.
+      if (HIDDEN_FIELDS.has(pth) || (pth.startsWith('boss_tower/') && !/^boss_tower\/bosses\/[^/]+\/floor$/.test(pth))) {
         // skipped
       } else if (groupTitleFor(pth) === 'user' && !USER_TAB_KEEP.has(pth)) {
         // user tab keeps only USER_TAB_KEEP
@@ -1061,7 +1062,7 @@ if (typeof module !== 'undefined') {
     'event_analytics/last_skipped_stamp_by_event_key/crystal_event_roster': { cat:'Events', name:'Last Skipped Stamp - Crystal Event', desc:'Slot you skipped, as HH_DD_MM_YY. The game uses this to decide the next slot.' },
 
     'player/gems': { cat:'Resources & Souls', name:'Gems / Diamonds', desc:'Premium currency. Used in shop, summons and upgrades.' },
-    'currency/balances/boss_tower.tickets': { cat:'Resources & Souls', name:'Tower Tickets', desc:'Entries for Boss Tower runs. Restores over time.' },
+    'currency/balances/boss_tower.tickets': { cat:'Boss Tower', name:'Tower Tickets', desc:'Entries for Boss Tower runs. Restores over time.' },
     'currency/balances/crystal.geodes': { cat:'Resources & Souls', name:'Crystal Geodes', desc:'Crystal currency. Opened / spent in the crystal system.' },
     'currency/balances/crystal.magic_dust': { cat:'Resources & Souls', name:'Magic Dust', desc:'Crystal upgrade dust. Spent to level crystals.' },
     'currency/balances/crystal.enchantment_stones': { cat:'Resources & Souls', name:'Enchantment Stones', desc:'Used to enchant crystals (Tier I-IV).' },
@@ -1220,15 +1221,15 @@ if (typeof module !== 'undefined') {
     if (left > 0) box.insertAdjacentHTML('beforeend', '<button class="more" type="button" data-act="more">Show ' + Math.min(PAGE, left) + ' more (' + left + ' hidden)</button>');
   }
 
-  const GROUP_TITLES = { blacksmith: 'Black Smith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Souls' };
+  const GROUP_TITLES = { blacksmith: 'Black Smith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Souls', boss_tower: 'Boss Tower' };
   function groupTitleFor(path){
     if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Black Smith Sharpening';
     if (path === 'currency/balances/blacksmith.coins') return 'Black Smith Sharpening';
     if (path === 'ab_tests/tests/level_pass') return 'level_pass';
     // Crystal System: the three crystal currencies live here, not in Souls.
     if (path === 'currency/balances/crystal.geodes' || path === 'currency/balances/crystal.enchantment_stones' || path === 'currency/balances/crystal.magic_dust') return 'Crystal System';
-    // Tower Tickets live in the Player tab.
-    if (path === 'currency/balances/boss_tower.tickets') return 'player';
+    // Tower Tickets live in the Boss Tower tab.
+    if (path === 'currency/balances/boss_tower.tickets') return 'Boss Tower';
     const g = path.includes('/') ? path.slice(0, path.indexOf('/')) : '(top level)';
     return GROUP_TITLES[g] || g;
   }
