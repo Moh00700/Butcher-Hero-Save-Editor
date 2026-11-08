@@ -423,7 +423,7 @@ function children(b, i) {
 
 /* Categories removed from the editor (their fields are hidden, never listed/searched,
    but are preserved untouched in the save when you hit Save) */
-const REMOVED_GROUPS = new Set(['promo_codes','notifications','rescue_quest','limited_mode','mines','quests','secret_chests','meta_stats','island_mastery','cashback','player_statistics','achievements','daily_procs','mails','shop','gates']);
+const REMOVED_GROUPS = new Set(['promo_codes','notifications','rescue_quest','limited_mode','mines','quests','secret_chests','meta_stats','island_mastery','cashback','player_statistics','achievements','daily_procs','mails','shop','gates','amulet']);
 
 /* String fields that are editable: the event schedule stamps. Every other
    string-valued field in the save stays untouched. */
@@ -454,10 +454,10 @@ function isEditableStr(path){
   if (path.startsWith('ab_tests/tests/')) return true;
   return false;
 }
-/* Read-only groups: listed for inspection, never editable. level_pass is here
-   because its purchased / paid_claimed flags are the IAP unlocks. */
+/* Read-only groups: listed for inspection, never editable.
+   level_pass/purchased is editable — the other level_pass fields are hidden. */
 function isReadOnly(path){
-  return path.startsWith('level_pass/');
+  return path.startsWith('level_pass/') && !path.endsWith('/purchased');
 }
 /* Deliberately NOT editable (even though they are strings):
    user/user_id, user/device_model, user/app_version - account/device identity.
@@ -546,7 +546,7 @@ function listFields(b, root) {
       const pth = prefix.join('/');
       // Hidden from the UI (see HIDDEN_FIELDS) - never listed.
       // Boss Tower tab keeps only floor progress (bosses/*/floor) — hide the rest.
-      if (HIDDEN_FIELDS.has(pth) || (pth.startsWith('boss_tower/') && !/^boss_tower\/bosses\/[^/]+\/floor$/.test(pth)) || (pth.startsWith('ab_tests/') && pth !== 'ab_tests/tests/level_pass')) {
+      if (HIDDEN_FIELDS.has(pth) || (pth.startsWith('boss_tower/') && !/^boss_tower\/bosses\/[^/]+\/floor$/.test(pth)) || (pth.startsWith('ab_tests/') && pth !== 'ab_tests/tests/level_pass') || (pth.startsWith('level_pass/') && !pth.endsWith('/purchased'))) {
         // skipped
       } else if (groupTitleFor(pth) === 'user' && !USER_TAB_KEEP.has(pth)) {
         // user tab keeps only USER_TAB_KEEP
@@ -1121,11 +1121,7 @@ if (typeof module !== 'undefined') {
     if (path.includes('item_slots/') && path.endsWith('/is_unlocked')) return { cat:'Weapons & Gear', name:'Item Slot — Unlocked', desc:'Gear slot. weapon_5_vip = 5th VIP weapon slot.' };
     if (path.includes('level_pass') && path.endsWith('/purchased')) return { cat:'Crystals & VIP', name:'Level Pass — Purchased', desc:'Season / level pass bought.' };
     if (path === 'currency/balances/blacksmith.coins') return { cat:'Black Smith Sharpening', name:'Blacksmith Coins', desc:'Coins for the blacksmith. Found in currency/balances in your latest save (45).' };
-    if (path.startsWith('level_pass/') && path.endsWith('/purchased')) return { cat:'Level Pass', name:'Level Pass — Purchased (read-only)', desc:'Whether this pass is bought. Shown for inspection only — not editable.' };
-    if (path.startsWith('level_pass/') && path.endsWith('/progress')) return { cat:'Level Pass', name:'Level Pass — Tier Progress (read-only)', desc:'Progress toward this tier goal. Shown for inspection only — not editable.' };
-    if (path.startsWith('level_pass/') && path.endsWith('/free_claimed')) return { cat:'Level Pass', name:'Level Pass — Free Reward Claimed (read-only)', desc:'Free-track reward claimed? Shown for inspection only — not editable.' };
-    if (path.startsWith('level_pass/') && path.endsWith('/paid_claimed')) return { cat:'Level Pass', name:'Level Pass — Paid Reward Claimed (read-only)', desc:'Paid-track reward claimed? Shown for inspection only — not editable.' };
-    if (path.startsWith('level_pass/') && path.endsWith('/paid_multiplied_claimed')) return { cat:'Level Pass', name:'Level Pass — Paid Multiplied Claimed (read-only)', desc:'Multiplied paid reward claimed? Shown for inspection only — not editable.' };
+    if (path.startsWith('level_pass/') && path.endsWith('/purchased')) return { cat:'Level Pass', name:'Level Pass — Purchased', desc:'Whether this pass is bought. Toggle it on to unlock the pass.' };
     if (path.startsWith('player/loadout/')) return { cat:'Weapons & Gear', name:'Loadout Slot', desc:'Equipped item key for this loadout slot. Use a real item key (e.g. doubleaxe, slime_spawn).' };
     if (path.startsWith('events/shown_league_features/')) return { cat:'Events', name:'Shown League Feature', desc:'A league feature the game already showed you. Feature key, e.g. gold_perk_pool.' };
     if (path.startsWith('boss_tower/defeated_bosses/')) return { cat:'Boss Tower', name:'Defeated Boss', desc:'A boss already beaten in Boss Tower. Boss key, e.g. hydra, lich.' };
