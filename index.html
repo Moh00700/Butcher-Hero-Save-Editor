@@ -121,6 +121,12 @@ details.tools > summary { cursor: pointer; padding: 10px 14px; font-weight: 500;
 .row.changed .num { border-color: var(--accent); }
 .row.invalid .num { border-color: var(--err); }
 .num:disabled { opacity: .65; cursor: not-allowed; }
+body.locked .row { opacity: .45; filter: grayscale(.7); }
+body.locked .row input, body.locked .row textarea, body.locked .row button, body.locked .row .switch { pointer-events: none; cursor: not-allowed; }
+body.locked #tools { opacity: .45; }
+body.locked #tools button, body.locked #tools input { pointer-events: none; }
+#locknote { display: none; margin-top: 10px; padding: 10px 14px; border: 1px solid var(--accent); border-radius: 6px; background: rgba(245,197,24,.10); font-size: 14px; }
+body.locked #locknote { display: block; }
 textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vertical; white-space: pre; overflow: auto; font-size: 12px; line-height: 1.45; }
 .switch {
   display: inline-flex; align-items: center; padding: 0; background: transparent; border: none; cursor: pointer;
@@ -248,7 +254,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 <div class="wrap">
   <header>
     <h1>Butcher Hero <span>Save Editor</span></h1>
-    <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Build 2026-11-08 · Crystal Names Icons Max v14</div>
+    <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Build 2026-11-08 · Locked Until Upload v16</div>
     <div class="panel" id="top-stats" aria-label="Account summary" style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin:12px auto 0;max-width:640px">
       <div><b>Playtime:</b> <span id="top-playtime">Unknown</span></div>
       <div><b>Installed:</b> <span id="top-install">Unknown</span></div>
@@ -268,6 +274,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
     <button class="btn primary" id="open-btn" type="button">Open your game_data.bin</button>
   </section>
 
+  <p id="locknote">Locked - preview only. Upload your game_data.bin above to unlock editing. All fields below are grayed out until then.</p>
   <div class="panel note" id="exnote" hidden>This is <b>example data</b> so you can try the editor. Open your own file with the button above, or drop it anywhere on this page.</div>
   <div class="panel after" id="after" hidden></div>
 
@@ -988,7 +995,7 @@ if (typeof module !== 'undefined') {
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const nowSec = () => Date.now() / 1000;
   const PAGE = 150;
-  const st = { name: '', sample: false, bytes: null, fields: [], edits: new Map(), errs: new Map(), q: '', mode: 'all', groups: new Map(), timers: new Set(), virtual: new Map() };
+  const st = { name: '', sample: false, locked: true, bytes: null, fields: [], edits: new Map(), errs: new Map(), q: '', mode: 'all', groups: new Map(), timers: new Set(), virtual: new Map() };
 
   const origText = f => f.kind === 'bool' ? String(f.v) : (f.kind === 'int' ? f.v.toString() : String(f.v));
   const curText = i => st.edits.has(i) ? st.edits.get(i) : origText(st.fields[i]);
@@ -1065,7 +1072,8 @@ if (typeof module !== 'undefined') {
       return false;
     }
     if (!fields.length) { toast('No editable values found in that file.', 8000); return false; }
-    st.bytes = b; st.name = name; st.sample = sample; st.fields = fields;
+    st.bytes = b; st.name = name; st.sample = sample; st.locked = sample; st.fields = fields;
+    document.body.classList.toggle('locked', st.locked);
     st.edits.clear(); st.errs.clear();
     st.timers = new Set(); fields.forEach((f, i) => { if (isTimerField(f)) st.timers.add(i); });
     st.q = ''; st.mode = 'all'; $('#q').value = '';
@@ -1090,6 +1098,7 @@ if (typeof module !== 'undefined') {
 
   /* ---- editing state ---- */
   function setEdit(i, text) {
+    if (st.locked) return;
     const f = st.fields[i];
     if (text === origText(f)) { st.edits.delete(i); st.errs.delete(i); return; }
     st.edits.set(i, text);
@@ -1291,7 +1300,7 @@ if (typeof module !== 'undefined') {
     ctl += '<button class="btn small" type="button" data-act="undo" ' + (changed ? '' : 'hidden') + ' aria-label="Undo change to ' + esc(leaf) + '">Undo</button>';
     return '<div class="row' + (changed ? ' changed' : '') + (st.errs.has(i) ? ' invalid' : '') + '" id="r' + i + '" data-i="' + i + '">' +
       '<div><div class="path">'+iconHTML+'<span><span class="dim">' + esc(parent) + '</span><b>' + esc(leaf) + '</b></span></div>' +
-      '<div class="sub"><span class="tag">' + (f.path === 'ab_tests/tests/level_pass' ? 'B / A' : f.kind === 'float' ? 'decimal' : f.kind === 'int' ? 'whole number' : f.kind === 'str' ? 'text' : 'on / off') + '</span>' +
+      '<div class="sub">' +
       (fieldInfoFor(f.path) ? '<span class="fdesc"><b>' + esc(fieldInfoFor(f.path).name) + '</b> — ' + esc(fieldInfoFor(f.path).desc) + (valueLabelFor(f, cur) ? ' · <i>' + valueLabelHTML(f, cur) + '</i>' : '') + '</span>' : '') +
       '</div></div>' +
       '<div class="ctl">' + ctl + '</div><div class="hint' + (h.err ? ' err' : '') + '">' + esc(h.t) + '</div></div>';
@@ -1396,8 +1405,8 @@ if (typeof module !== 'undefined') {
     try{ updateTopStats(); }catch(e){}
     const n = st.edits.size + st.virtual.size, e = st.errs.size, s = $('#state');
     s.classList.toggle('err', e > 0);
-    s.textContent = !n ? 'No changes yet' : n + (n === 1 ? ' change' : ' changes') + (e ? ', ' + e + (e === 1 ? ' needs fixing' : ' need fixing') : '');
-    $('#save-btn').disabled = !n; $('#reset-all').disabled = !n;
+    s.textContent = st.locked ? 'Locked - upload your game_data.bin to unlock editing' : (!n ? 'No changes yet' : n + (n === 1 ? ' change' : ' changes') + (e ? ', ' + e + (e === 1 ? ' needs fixing' : ' need fixing') : ''));
+    $('#save-btn').disabled = !n || st.locked; $('#reset-all').disabled = !n || st.locked;
     $('#save-btn').textContent = 'Save ' + (st.sample ? 'example' : 'game_data.bin');
   }
 
@@ -1409,12 +1418,14 @@ if (typeof module !== 'undefined') {
   }, true);
 
   list.addEventListener('input', ev => {
+    if (st.locked) { ev.preventDefault(); return; }
     const el = ev.target.closest('[data-act="input"]'); if (!el) return;
     const i = +el.closest('.row').dataset.i;
     setEdit(i, el.value); refreshRow(i); updateBar();
   });
 
   list.addEventListener('click', ev => {
+    if (st.locked && !(ev.target.closest('[data-act]') && ev.target.closest('[data-act]').dataset.act === 'more')) { ev.preventDefault(); return; }
     const el = ev.target.closest('[data-act]'); if (!el || el.tagName === 'INPUT') return;
     const act = el.dataset.act;
     if (act === 'more') { fillGroup(el.closest('details.grp')); return; }
@@ -1434,9 +1445,10 @@ if (typeof module !== 'undefined') {
     renderList();
   }));
 
-  $('#reset-all').addEventListener('click', () => { st.edits.clear(); st.errs.clear(); st.virtual.clear(); renderList(); updateBar(); toast('All changes undone'); });
+  $('#reset-all').addEventListener('click', () => { if (st.locked) return; st.edits.clear(); st.errs.clear(); st.virtual.clear(); renderList(); updateBar(); toast('All changes undone'); });
 
   function respawn(text) {
+    if (st.locked) { toast('Locked - upload your game_data.bin first.', 4000); return; }
     const flt = $('#sp-filter').value.trim().toLowerCase(), all = $('#sp-all').checked, now = nowSec();
     let n = 0;
     st.fields.forEach((f, i) => {
@@ -1601,12 +1613,14 @@ const VIP_TIERS = [
       '<div class="ctl">'+ctl+'</div><div class="hint">'+(v.path===COMBO_PATH ? 'Saves all three fields together on Save.' : v.path===VIP_COMBO_PATH ? 'Saves all four fields together on Save.' : 'Not in this save — type a value, it will be added on Save.')+'</div></div>';
   }
   document.addEventListener('input', ev=>{
+    if (st.locked) { ev.preventDefault(); return; }
     const inp=ev.target.closest('[data-vinput]'); if(!inp) return;
     const p=inp.dataset.vinput; if(inp.value.trim()==='') st.virtual.delete(p); else st.virtual.set(p, inp.value.trim());
     const row=inp.closest('.row'); if(row){ row.classList.toggle('changed', st.virtual.has(p)); const u=row.querySelector('[data-vundo]'); if(u) u.hidden=!st.virtual.has(p); }
     updateBar();
   });
   document.addEventListener('change', ev=>{
+    if (st.locked) { ev.preventDefault(); return; }
     const r=ev.target.closest('[data-vtier]'); if(!r) return;
     const p=VIP_COMBO_PATH; const t=r.dataset.vtier;
     st.virtual.set(p, t);
@@ -1615,6 +1629,7 @@ const VIP_TIERS = [
     updateBar();
   });
   document.addEventListener('click', ev=>{
+    if (st.locked && (ev.target.closest('[data-vpath]') || ev.target.closest('[data-vadd]') || ev.target.closest('[data-vundo]'))) { ev.preventDefault(); return; }
     const sw=ev.target.closest('[data-vpath]'); if(sw){ const p=sw.dataset.vpath; const on=sw.getAttribute('aria-checked')!=='true'; st.virtual.set(p, on?'true':'false'); sw.setAttribute('aria-checked', String(on)); const swImg2 = sw.querySelector('img'); if (swImg2) { swImg2.src = on ? TOGGLE_ON_IMG : TOGGLE_OFF_IMG; swImg2.alt = on ? 'ON' : 'OFF'; } const row=sw.closest('.row'); if(row){ row.classList.add('changed'); const u=row.querySelector('[data-vundo]'); if(u) u.hidden=false; } updateBar(); return; }
     const add=ev.target.closest('[data-vadd]'); if(add){ const p=add.dataset.vadd; if(st.virtual.has(p)){ st.virtual.delete(p); add.textContent='Add on Save'; } else { st.virtual.set(p,'true'); add.textContent='Added ✓ — will add on Save'; } const row=add.closest('.row'); if(row){ row.classList.toggle('changed', st.virtual.has(p)); const u=row.querySelector('[data-vundo]'); if(u) u.hidden=!st.virtual.has(p); } updateBar(); return; }
     const undo=ev.target.closest('[data-vundo]'); if(undo){ const p=undo.dataset.vundo; st.virtual.delete(p); const row=undo.closest('.row'); if(row){ row.classList.remove('changed'); undo.hidden=true; const inp=row.querySelector('[data-vinput]'); if(inp) inp.value=''; const sw2=row.querySelector('[data-vpath]'); if(sw2){ const v=VIRTUAL_FIELDS.find(x=>x.path===p); const on=v && (v.path===COMBO_PATH ? comboCurrent() : v.def==='true'); sw2.setAttribute('aria-checked', String(on)); const swImg3 = sw2.querySelector('img'); if (swImg3) { swImg3.src = on ? TOGGLE_ON_IMG : TOGGLE_OFF_IMG; swImg3.alt = on ? 'ON' : 'OFF'; } } const tierInputs=row.querySelectorAll('[data-vtier]'); if(tierInputs.length){ const curT = (p===VIP_COMBO_PATH ? vipTier() : (parseInt((VIRTUAL_FIELDS.find(x=>x.path===p)||{}).def||'0',10)||0)); tierInputs.forEach(r=>{ r.checked = (parseInt(r.dataset.vtier,10)===curT); const lab=r.closest('.vip-tier'); if(lab) lab.classList.toggle('sel', r.checked); }); } const ad=row.querySelector('[data-vadd]'); if(ad) ad.textContent='Add on Save'; } updateBar(); }
