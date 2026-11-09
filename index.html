@@ -254,15 +254,23 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 <div class="wrap">
   <header>
     <h1>Butcher Hero <span>Save Editor</span></h1>
-    <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Build 2026-11-08 · Locked Until Upload v16</div>
-    <div class="panel" id="top-stats" aria-label="Account summary" style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin:12px auto 0;max-width:640px">
-      <div><b>Playtime:</b> <span id="top-playtime">Unknown</span></div>
-      <div><b>Installed:</b> <span id="top-install">Unknown</span></div>
-      <div><b>Total Kills:</b> <span id="top-kills">Unknown</span></div>
-      <div><b>Deaths:</b> <span id="top-deaths">Unknown</span></div>
-      <div><b>App Version:</b> <span id="top-appversion">Unknown</span></div>
+    <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Build 2026-11-08 · Snapshot Data Removed v25</div>
+    <div class="panel" id="top-stats" aria-label="Account summary" style="display:flex;gap:16px;flex-wrap:nowrap;justify-content:space-between;align-items:center;margin:12px auto 0;max-width:880px;overflow-x:auto">
+      <div style="white-space:nowrap"><b>Installed:</b> <span id="top-install">Unknown</span></div>
+      <div style="white-space:nowrap"><b>Total Kills:</b> <span id="top-kills">Unknown</span></div>
+      <div style="white-space:nowrap"><b>Deaths:</b> <span id="top-deaths">Unknown</span></div>
+      <div style="white-space:nowrap"><b>App Version:</b> <span id="top-appversion">Unknown</span></div>
     </div>
     <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
+    <details class="panel tools" id="find-save">
+      <summary>Where to find game_data.bin — Android &amp; iOS</summary>
+      <div class="toolsbody">
+        <p><b>Android:</b> open your file manager and go to <b>Internal storage &gt; Android &gt; data</b>, then look for the <b>Butcher Hero</b> folder (named after the game) &gt; <b>files</b> &gt; <code>game_data.bin</code>. On Android 11 and later that folder is often blocked for normal file managers — if you cannot see it, use a file manager with Shizuku / ADB access, or a PC file transfer.</p>
+        <p>If you still cannot see it, the file lives in the game&apos;s private app storage (<code>/data/data/…</code>), which needs root or ADB access to reach.</p>
+        <p><b>iOS (iPhone / iPad):</b> open the <b>Files</b> app &gt; <b>Browse &gt; On My iPhone</b> and look for the <b>Butcher Hero</b> folder &gt; <code>game_data.bin</code>. If it is not there, connect your iPhone to a computer and use <b>Finder (Mac)</b> or <b>iTunes / Apple Devices (Windows)</b> &gt; your iPhone &gt; <b>Files &gt; Butcher Hero</b> to copy it out. If the game syncs to iCloud, check <b>iCloud Drive &gt; Butcher Hero</b> too.</p>
+        <p>After editing: close the game completely, <b>back up the original</b> <code>game_data.bin</code>, then put the edited file back in the <b>same place with the exact same name</b>.</p>
+      </div>
+    </details>
   </header>
 
   <section class="panel filebar" id="filebar" aria-label="Save file">
@@ -522,6 +530,8 @@ function isReadOnly(path){
 /* Fields hidden from the UI - their bytes stay in the save untouched. */
 const HIDDEN_FIELDS = new Set([
   'blacksmith/is_unlocked',
+  'events/snapshot_data',
+  'user/playtime_minutes',
   'player/seen_blacksmith_sharpening_tutorial',
   'ab_tests/tests/blacksmith',
   'currency/balances/quest.dynamite',
@@ -584,10 +594,10 @@ const USER_TAB_KEEP = new Set([
   'user/crystal_offer_purchased',
   'user/chaotic_soul_offer_purchased',
 ]);
-const GROUP_TITLES = { blacksmith: 'Black Smith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers' };
+const GROUP_TITLES = { blacksmith: 'Blacksmith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers' };
 function groupTitleFor(path){
-  if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Black Smith Sharpening';
-  if (path === 'currency/balances/blacksmith.coins') return 'Black Smith Sharpening';
+  if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Blacksmith Sharpening';
+  if (path === 'currency/balances/blacksmith.coins') return 'Blacksmith Sharpening';
   if (path === 'ab_tests/tests/level_pass') return 'Level Pass';
   // Crystal System: the three crystal currencies live here, not in Souls.
   if (path === 'currency/balances/crystal.geodes' || path === 'currency/balances/crystal.enchantment_stones' || path === 'currency/balances/crystal.magic_dust') return 'Crystal System';
@@ -1036,13 +1046,12 @@ if (typeof module !== 'undefined') {
     // Never present example values as yours: until a real game_data.bin loads,
     // every summary field stays Unknown.
     if (st.sample) {
-      for (const id of ['top-playtime', 'top-install', 'top-kills', 'top-appversion', 'top-deaths']) {
+      for (const id of ['top-install', 'top-kills', 'top-appversion', 'top-deaths']) {
         const el = document.getElementById(id);
         if (el) el.textContent = 'Unknown';
       }
       return;
     }
-    const pt = rawTopValue('user/playtime_minutes');
     const ins = rawTopValue('user/install_time');
     const kills = rawTopValue('player_statistics/total_kills');
     const ver = rawTopValue('user/app_version');
@@ -1053,8 +1062,7 @@ if (typeof module !== 'undefined') {
     const deaths = rawTopValue('player/deaths_count');
     const deathsEl = document.getElementById('top-deaths');
     if(deathsEl) deathsEl.textContent = (deaths===null||deaths===undefined) ? 'Unknown' : Number(deaths).toLocaleString();
-    const ptEl = document.getElementById('top-playtime'), insEl = document.getElementById('top-install');
-    if(ptEl) ptEl.textContent = (pt===null||pt===undefined) ? 'Unknown' : (Number(pt)/1440).toFixed(2)+' days ('+Number(pt).toLocaleString()+' min)';
+    const insEl = document.getElementById('top-install');
     if(insEl){
       if(ins===null||ins===undefined || Number(ins)<=0) insEl.textContent='Unknown';
       else { let sec=Number(ins); if(sec>1e17) sec=(sec-621355968000000000)/1e7; else if(sec>1e11) sec=sec/1000; const d=new Date(sec*1000); insEl.textContent = isNaN(d) ? 'Unknown' : d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -1079,7 +1087,7 @@ if (typeof module !== 'undefined') {
     st.q = ''; st.mode = 'all'; $('#q').value = '';
     document.querySelectorAll('.fchip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.mode === 'all')));
     $('#fname').textContent = sample ? 'Example save' : name;
-    $('#fmeta').innerHTML = '<span>' + fmtBytes(b.length) + '</span><span>' + fields.length.toLocaleString() + ' editable values</span>' +
+    $('#fmeta').innerHTML = '<span>' + fmtBytes(b.length) + '</span>' +
       (valid ? '<span class="chip ok">hash valid</span>' : '<span class="chip warn">hash invalid, fixed on save</span>') +
       (sample ? '<span class="chip ex">example</span>' : '');
     $('#exnote').hidden = !sample;
@@ -1118,7 +1126,7 @@ if (typeof module !== 'undefined') {
 
   const FIELD_ICONS = {
     'player/gems': { emoji: '💜', cls: 'gems', label: 'Gems' },
-    '__combo__/vip/privileges': { emoji: '⭐', cls: 'vip', label: 'VIP Privileges' }, '__combo__/blacksmith/sharpening_unlocked': { emoji: '🛠️', cls: 'sharpening', label: 'Blacksmith Sharpening' },
+    '__combo__/vip/privileges': { emoji: '⭐', cls: 'vip', label: 'VIP Privileges' }, '__combo__/blacksmith/sharpening_unlocked': { emoji: '🛠️', cls: 'sharpening', label: 'Unlock Blacksmith Sharpening' },
     'currency/balances/soul.common': { emoji: '🔵', cls: 'soul_common', label: 'Common Soul' },
     'currency/balances/soul.large': { emoji: '🟣', cls: 'soul_large', label: 'Uncommon Soul (Large)' },
     'currency/balances/soul.huge': { emoji: '🟠', cls: 'soul_huge', label: 'Rare Soul (Huge)' },
@@ -1222,7 +1230,7 @@ if (typeof module !== 'undefined') {
     if (path === 'user/soul_offer_purchased') return { cat:'Passes and Offers', name:'Soul Pass', desc:'Soul Pass offer. Toggle it on to unlock the Soul Pass — the purchase time is stamped to right now automatically.' };
     if (path === 'user/crystal_offer_purchased') return { cat:'Passes and Offers', name:'Crystal Pass', desc:'Crystal Pass offer. Toggle it on to unlock the Crystal Pass — the purchase time is stamped to right now automatically.' };
     if (path === 'user/chaotic_soul_offer_purchased') return { cat:'Passes and Offers', name:'Chaotic Pass', desc:'Chaotic Pass offer (Chaotic Soul). Toggle it on to unlock the Chaotic Pass — the purchase time is stamped to right now automatically.' };
-    if (path === 'currency/balances/blacksmith.coins') return { cat:'Black Smith Sharpening', name:'Blacksmith Coins', desc:'Coins for the blacksmith. Found in currency/balances in your latest save (45).' };
+    if (path === 'currency/balances/blacksmith.coins') return { cat:'Blacksmith Sharpening', name:'Blacksmith Coins', desc:'Coins for the blacksmith. Found in currency/balances in your latest save (45).' };
     if (path.startsWith('player/loadout/')) return { cat:'Weapons & Gear', name:'Loadout Slot', desc:'Equipped item key for this loadout slot. Use a real item key (e.g. doubleaxe, slime_spawn).' };
     if (path.startsWith('events/shown_league_features/')) return { cat:'Events', name:'Shown League Feature', desc:'A league feature the game already showed you. Feature key, e.g. gold_perk_pool.' };
     if (path === 'boss_tower/bosses/lava_crab/floor') return { cat:'Boss Tower', name:'Primal Lava Crab — Floor', desc:'Boss Tower floor for Primal Lava Crab (Tower Level 1). Raise it to face a stronger Primal Lava Crab for better rewards.' };
@@ -1343,10 +1351,10 @@ if (typeof module !== 'undefined') {
     if (left > 0) box.insertAdjacentHTML('beforeend', '<button class="more" type="button" data-act="more">Show ' + Math.min(PAGE, left) + ' more (' + left + ' hidden)</button>');
   }
 
-  const GROUP_TITLES = { blacksmith: 'Black Smith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers' };
+  const GROUP_TITLES = { blacksmith: 'Blacksmith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers' };
   function groupTitleFor(path){
-    if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Black Smith Sharpening';
-    if (path === 'currency/balances/blacksmith.coins') return 'Black Smith Sharpening';
+    if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Blacksmith Sharpening';
+    if (path === 'currency/balances/blacksmith.coins') return 'Blacksmith Sharpening';
     if (path === 'ab_tests/tests/level_pass') return 'Level Pass';
     // Crystal System: the three crystal currencies live here, not in Souls.
     if (path === 'currency/balances/crystal.geodes' || path === 'currency/balances/crystal.enchantment_stones' || path === 'currency/balances/crystal.magic_dust') return 'Crystal System';
@@ -1365,9 +1373,17 @@ if (typeof module !== 'undefined') {
       if (!st.groups.has(k)) st.groups.set(k, []);
       st.groups.get(k).push(i);
     });
+    // Tab order: Vip Privileges, Souls, Blacksmith Sharpening, Crystal System, Level Pass, Boss Tower, then the rest
+    { const TAB_ORDER = ['Vip Privileges','Souls','Blacksmith Sharpening','Crystal System','Level Pass','Boss Tower']; const ordered = new Map(); TAB_ORDER.forEach(k => { if (st.groups.has(k)) ordered.set(k, st.groups.get(k)); }); st.groups.forEach((v, k) => { if (!ordered.has(k)) ordered.set(k, v); }); st.groups = ordered; }
     // VIP combo first in its tab
     const vipGroup = st.groups.get('Vip Privileges');
     if (vipGroup) { const j = vipGroup.findIndex(x => x === 'v:' + VIP_COMBO_PATH); if (j > 0) { vipGroup.splice(j, 1); vipGroup.unshift('v:' + VIP_COMBO_PATH); } }
+    // Unlock Blacksmith Sharpening first in the Blacksmith Sharpening tab
+    const bsGroup = st.groups.get('Blacksmith Sharpening');
+    if (bsGroup) { const j = bsGroup.findIndex(x => x === 'v:' + COMBO_PATH); if (j > 0) { bsGroup.splice(j, 1); bsGroup.unshift('v:' + COMBO_PATH); } }
+    // currency/balances/ fields first in the Crystal System tab
+    const crystalGroup = st.groups.get('Crystal System');
+    if (crystalGroup) { const pathOf = x => (typeof x === 'string' ? x.slice(2) : st.fields[x].path); const head = crystalGroup.filter(x => pathOf(x).startsWith('currency/balances/')); const rest = crystalGroup.filter(x => !pathOf(x).startsWith('currency/balances/')); crystalGroup.length = 0; crystalGroup.push(...head, ...rest); }
     // Tower Tickets first in the Boss Tower tab, Unlock Level Pass first in the Level Pass tab
     const btGroup = st.groups.get('Boss Tower');
     if (btGroup) { const j = btGroup.findIndex(x => typeof x === 'number' && st.fields[x].path === 'currency/balances/boss_tower.tickets'); if (j > 0) { const t = btGroup.splice(j, 1)[0]; btGroup.unshift(t); } }
@@ -1525,7 +1541,7 @@ if (typeof module !== 'undefined') {
 
   /* ---- Virtual fields: Tkinter fields missing from the save, still editable ---- */
   const VIRTUAL_FIELDS = [
-    { path:'__combo__/blacksmith/sharpening_unlocked', kind:'bool', cat:'Black Smith Sharpening', name:'Blacksmith Sharpening', desc:'One switch for all three: ON = blacksmith unlocked + tutorial seen + A/B variant C. OFF = both false + variant A.', def:'false' },
+    { path:'__combo__/blacksmith/sharpening_unlocked', kind:'bool', cat:'Blacksmith Sharpening', name:'Unlock Blacksmith Sharpening', desc:'One switch for all three: ON = blacksmith unlocked + tutorial seen + A/B variant C. OFF = both false + variant A.', def:'false' },
     { path:'__combo__/vip/privileges', kind:'tier', cat:'Vip Privileges', name:'VIP Privileges', desc:'Pick one VIP tier (0–10). Sets that tier\u2019s VIP points — spend + the four VIP points fields — on Save.', def:'0' },
     { path:'player/unlocked_location_number', kind:'int', cat:'Progression & Stats', name:'Unlocked Stage', desc:'Highest stage you have unlocked.', def:'0' },
     { path:'crystals/upgrade_levels/crystal_blacksmithing', kind:'int', cat:'Crystals & VIP', name:'Blacksmithing', desc:'Blacksmith passive — improves crystal crafting. Max 78.', def:'1' },
@@ -1607,7 +1623,7 @@ const VIP_TIERS = [
     const isVipTier=(v.kind==='tier' && v.path===VIP_COMBO_PATH);
     return '<div class="row'+(isSet?' changed':'')+(isVipTier?' vip-row':'')+'" data-vrow="'+esc(v.path)+'">' +
       '<div><div class="path">'+iconHTML+'<span><span class="dim">'+esc(parent)+'</span><b>'+esc(leaf)+'</b></span></div>' +
-      '<div class="sub"><span class="tag">'+((v.path===COMBO_PATH || v.path===VIP_COMBO_PATH) ? 'combined' : 'new — will be added')+'</span>' +
+      '<div class="sub">'+((v.path===COMBO_PATH || v.path===VIP_COMBO_PATH) ? '' : '<span class="tag">new — will be added</span>') +
       '<span class="fdesc"><b>'+esc(info.name)+'</b> — '+esc(info.desc)+(vl?' · <i>'+vl+'</i>':'')+'</span></div></div>' +
       (isVipTier?tiersHTML:'') +
       '<div class="ctl">'+ctl+'</div><div class="hint">'+(v.path===COMBO_PATH ? 'Saves all three fields together on Save.' : v.path===VIP_COMBO_PATH ? 'Saves all four fields together on Save.' : 'Not in this save — type a value, it will be added on Save.')+'</div></div>';
