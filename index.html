@@ -254,7 +254,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 <div class="wrap">
   <header>
     <h1>Butcher Hero <span>Save Editor</span></h1>
-    <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Build 2026-11-08 · Crystal Event Ready Now v26</div>
+    <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Build 2026-11-08 · Crystal Event Separate Again v28</div>
     <div class="panel" id="top-stats" aria-label="Account summary" style="display:flex;gap:16px;flex-wrap:nowrap;justify-content:space-between;align-items:center;margin:12px auto 0;max-width:880px;overflow-x:auto">
       <div style="white-space:nowrap"><b>Installed:</b> <span id="top-install">Unknown</span></div>
       <div style="white-space:nowrap"><b>Total Kills:</b> <span id="top-kills">Unknown</span></div>
@@ -534,6 +534,10 @@ const HIDDEN_FIELDS = new Set([
   'events/state',
   'events/activated_at_seconds',
   'crystals/stat',
+  'events/currencies/red_crystal',
+  'events/currencies/blue_crystal',
+  'events/collected_currencies/red_crystal',
+  'events/collected_currencies/blue_crystal',
   'user/playtime_minutes',
   'player/seen_blacksmith_sharpening_tutorial',
   'ab_tests/tests/blacksmith',
@@ -633,6 +637,10 @@ function listFields(b, root) {
         // skipped
       } else if (pth.startsWith('boss_tower/') && !pth.endsWith('/floor')) {
         // skipped
+      } else if (pth.startsWith('event_analytics/')) {
+        // skipped - event_analytics tab removed per request
+      } else if (pth.startsWith('crystals/crystals_v2/')) {
+        // skipped - crystals_v2 fields hidden from Crystal System tab
       } else if (pth.startsWith('crystals/crystals/')) {
         // skipped - individual crystal entries (0-4) hidden per request
       } else if (HIDDEN_FIELDS.has(pth)) {
@@ -1171,14 +1179,14 @@ if (typeof module !== 'undefined') {
 
   /* ---- Field guide: real name + short description, per category (from Tkinter script) ---- */
   const FIELD_INFO = {
-    'events/currencies/red_crystal': { cat:'Crystal Event', name:'Event Red Crystal', desc:'Red crystals held in the event.' },
-    'events/currencies/blue_crystal': { cat:'Crystal Event', name:'Event Blue Crystal', desc:'Blue crystals held in the event.' },
-    'events/collected_currencies/red_crystal': { cat:'Crystal Event', name:'Collected Red Crystal', desc:'Red crystals collected in the event.' },
-    'events/collected_currencies/blue_crystal': { cat:'Crystal Event', name:'Collected Blue Crystal', desc:'Blue crystals collected in the event.' },
-    'events/extra_duration_seconds': { cat:'Crystal Event', name:'Add Extra Time', desc:'Extra event time, in seconds.' },
-    'events/extra_duration': { cat:'Crystal Event', name:'Add Extra Time', desc:'Extra event time.' },
-    'events/duration_seconds': { cat:'Crystal Event', name:'Add Extra Time', desc:'Extra event time, in seconds.' },
-    'events/extra_time_seconds': { cat:'Crystal Event', name:'Add Extra Time', desc:'Extra event time, in seconds.' },
+    'events/currencies/red_crystal': { cat:'Crystal System', name:'Event Red Crystal', desc:'Red crystals held in the event.' },
+    'events/currencies/blue_crystal': { cat:'Crystal System', name:'Event Blue Crystal', desc:'Blue crystals held in the event.' },
+    'events/collected_currencies/red_crystal': { cat:'Crystal System', name:'Collected Red Crystal', desc:'Red crystals collected in the event.' },
+    'events/collected_currencies/blue_crystal': { cat:'Crystal System', name:'Collected Blue Crystal', desc:'Blue crystals collected in the event.' },
+    'events/extra_duration_seconds': { cat:'Crystal System', name:'Add Extra Time', desc:'Extra event time, in seconds.' },
+    'events/extra_duration': { cat:'Crystal Event', name:'Add Extra Time (by Minutes)', desc:'Extra event time, in minutes.' },
+    'events/duration_seconds': { cat:'Crystal System', name:'Add Extra Time', desc:'Extra event time, in seconds.' },
+    'events/extra_time_seconds': { cat:'Crystal System', name:'Add Extra Time', desc:'Extra event time, in seconds.' },
     'event_analytics/active_event_key': { cat:'Events', name:'Active Event Key', desc:'Which event roster is active. Keep as crystal_event_roster unless you know the key.' },
     'event_analytics/active_schedule_stamp': { cat:'Events', name:'Active Schedule Stamp', desc:'Current event schedule slot, as HH_DD_MM_YY. Example: 00_06_11_26 = 00:00 on 6 Nov 2026.' },
     'event_analytics/last_completed_id': { cat:'Events', name:'Last Completed Event ID', desc:'Event key + unix time of the last completed run, e.g. crystal_event_roster_1793128498.' },
@@ -1243,7 +1251,7 @@ if (typeof module !== 'undefined') {
     if (path === 'user/chaotic_soul_offer_purchased') return { cat:'Passes and Offers', name:'Chaotic Pass', desc:'Chaotic Pass offer (Chaotic Soul). Toggle it on to unlock the Chaotic Pass — the purchase time is stamped to right now automatically.' };
     if (path === 'currency/balances/blacksmith.coins') return { cat:'Blacksmith Sharpening', name:'Blacksmith Coins', desc:'Coins for the blacksmith. Found in currency/balances in your latest save (45).' };
     if (path.startsWith('player/loadout/')) return { cat:'Weapons & Gear', name:'Loadout Slot', desc:'Equipped item key for this loadout slot. Use a real item key (e.g. doubleaxe, slime_spawn).' };
-    if (path.startsWith('events/') && (path.includes('duration') || path.includes('extra_time') || path.includes('extra_duration'))) return { cat:'Crystal Event', name:'Add Extra Time', desc:'Extra event time. The exact unit is whatever this field used in your save.' };
+    if (path.startsWith('events/') && (path.includes('duration') || path.includes('extra_time') || path.includes('extra_duration'))) return { cat:'Crystal System', name:'Add Extra Time', desc:'Extra event time. The exact unit is whatever this field used in your save.' };
     if (path.startsWith('events/shown_league_features/')) return { cat:'Events', name:'Shown League Feature', desc:'A league feature the game already showed you. Feature key, e.g. gold_perk_pool.' };
     if (path === 'boss_tower/bosses/lava_crab/floor') return { cat:'Boss Tower', name:'Primal Lava Crab — Floor', desc:'Boss Tower floor for Primal Lava Crab (Tower Level 1). Raise it to face a stronger Primal Lava Crab for better rewards.' };
     if (path === 'boss_tower/bosses/berserker/floor') return { cat:'Boss Tower', name:'Demonic Berserker — Floor', desc:'Boss Tower floor for Demonic Berserker (Tower Level 4). Raise it to face a stronger Demonic Berserker for better rewards.' };
@@ -1393,8 +1401,8 @@ if (typeof module !== 'undefined') {
     // Unlock Blacksmith Sharpening first in the Blacksmith Sharpening tab
     const bsGroup = st.groups.get('Blacksmith Sharpening');
     if (bsGroup) { const j = bsGroup.findIndex(x => x === 'v:' + COMBO_PATH); if (j > 0) { bsGroup.splice(j, 1); bsGroup.unshift('v:' + COMBO_PATH); } }
-    // Make Event Ready Now first in the Crystal Event tab, then the 4 event crystal currency fields together
-    { const evGroup = st.groups.get('Crystal Event'); if (evGroup) { const pathOf = x => (typeof x === 'string' ? x.slice(2) : st.fields[x].path); const disp = x => (typeof x === 'string' ? virtualDisplayPath(VIRTUAL_FIELDS.find(v => v.path === x.slice(2))) : st.fields[x].path); const combo = evGroup.filter(x => disp(x) === 'events/make_ready_now'); const curr = evGroup.filter(x => ['events/currencies/red_crystal','events/currencies/blue_crystal','events/collected_currencies/red_crystal','events/collected_currencies/blue_crystal'].includes(pathOf(x))); const rest = evGroup.filter(x => !combo.includes(x) && !curr.includes(x)); evGroup.length = 0; evGroup.push(...combo, ...curr, ...rest); } }
+    // Crystal Event tab: Make Event Ready Now first, then Red/Blue Golem combos, then the rest
+    { const evGroup = st.groups.get('Crystal Event'); if (evGroup) { const disp = x => (typeof x === 'string' ? virtualDisplayPath(VIRTUAL_FIELDS.find(v => v.path === x.slice(2))) : st.fields[x].path); const head = evGroup.filter(x => ['events/make_ready_now','events/red_crystal_golem','events/blue_crystal_golem'].includes(disp(x))); head.sort((a,b) => ['events/make_ready_now','events/red_crystal_golem','events/blue_crystal_golem'].indexOf(disp(a)) - ['events/make_ready_now','events/red_crystal_golem','events/blue_crystal_golem'].indexOf(disp(b))); const rest = evGroup.filter(x => !head.includes(x)); evGroup.length = 0; evGroup.push(...head, ...rest); } }
     // currency/balances/ fields first in the Crystal System tab
     const crystalGroup = st.groups.get('Crystal System');
     if (crystalGroup) { const pathOf = x => (typeof x === 'string' ? x.slice(2) : st.fields[x].path); const head = crystalGroup.filter(x => pathOf(x).startsWith('currency/balances/')); const rest = crystalGroup.filter(x => !pathOf(x).startsWith('currency/balances/')); crystalGroup.length = 0; crystalGroup.push(...head, ...rest); }
@@ -1557,6 +1565,8 @@ if (typeof module !== 'undefined') {
   const VIRTUAL_FIELDS = [
     { path:'__combo__/blacksmith/sharpening_unlocked', kind:'bool', cat:'Blacksmith Sharpening', name:'Unlock Blacksmith Sharpening', desc:'One switch for all three: ON = blacksmith unlocked + tutorial seen + A/B variant C. OFF = both false + variant A.', def:'false' },
     { path:'__combo__/events/make_ready_now', kind:'bool', cat:'Crystal Event', name:'Make Event Ready Now', desc:'One switch for the event: ON = state 1 + activated_at_seconds = now. OFF = state 0 + activated_at_seconds = 0.', def:'false' },
+    { path:'__combo__/events/red_crystal_golem', kind:'float', cat:'Crystal Event', name:'Red Crystal Golem', desc:'One value for both: events/currencies/red_crystal + events/collected_currencies/red_crystal. Both are set to this on Save.', def:'0' },
+    { path:'__combo__/events/blue_crystal_golem', kind:'float', cat:'Crystal Event', name:'Blue Crystal Golem', desc:'One value for both: events/currencies/blue_crystal + events/collected_currencies/blue_crystal. Both are set to this on Save.', def:'0' },
     { path:'__combo__/vip/privileges', kind:'tier', cat:'Vip Privileges', name:'VIP Privileges', desc:'Pick one VIP tier (0–10). Sets that tier\u2019s VIP points — spend + the four VIP points fields — on Save.', def:'0' },
     { path:'player/unlocked_location_number', kind:'int', cat:'Progression & Stats', name:'Unlocked Stage', desc:'Highest stage you have unlocked.', def:'0' },
     { path:'crystals/upgrade_levels/crystal_blacksmithing', kind:'int', cat:'Crystals & VIP', name:'Blacksmithing', desc:'Blacksmith passive — improves crystal crafting. Max 78.', def:'1' },
@@ -1581,6 +1591,10 @@ if (typeof module !== 'undefined') {
   }
   const EVENT_COMBO_PATH = '__combo__/events/make_ready_now';
   function eventComboCurrent(){ try{ const stt = rawTopValue('events/state'); const act = rawTopValue('events/activated_at_seconds'); return (stt === 1 || stt === '1') && (typeof act === 'number' ? act > 0 : parseInt(act, 10) > 0); }catch(e){ return false; } }
+  const EVENT_RED_COMBO_PATH = '__combo__/events/red_crystal_golem';
+  const EVENT_BLUE_COMBO_PATH = '__combo__/events/blue_crystal_golem';
+  function eventRedCurrent(){ try{ const a = rawTopValue('events/currencies/red_crystal'); if (typeof a === 'number') return a; const b = rawTopValue('events/collected_currencies/red_crystal'); return (typeof b === 'number' ? b : 0); }catch(e){ return 0; } }
+  function eventBlueCurrent(){ try{ const a = rawTopValue('events/currencies/blue_crystal'); if (typeof a === 'number') return a; const b = rawTopValue('events/collected_currencies/blue_crystal'); return (typeof b === 'number' ? b : 0); }catch(e){ return 0; } }
   const VIP_COMBO_PATH = '__combo__/vip/privileges';
   const VIP_FIELDS = ['currency/balances/vip.points','currency/balances/vip_points','currency/balances/vip','player/vip_points'];
 const VIP_TIERS = [
@@ -1620,7 +1634,9 @@ const VIP_TIERS = [
   function virtualRowHTML(v){
     const dp=virtualDisplayPath(v);
     const slash=dp.lastIndexOf('/'); const parent=slash>=0?dp.slice(0,slash+1):''; const leaf=slash>=0?dp.slice(slash+1):dp;
-    const cur=st.virtual.has(v.path)?st.virtual.get(v.path):'';
+    let cur=st.virtual.has(v.path)?st.virtual.get(v.path):'';
+    if (cur==='' && v.path===EVENT_RED_COMBO_PATH) cur=String(eventRedCurrent());
+    if (cur==='' && v.path===EVENT_BLUE_COMBO_PATH) cur=String(eventBlueCurrent());
     const isSet=st.virtual.has(v.path);
     const info=fieldInfoFor(v.path) || { name:v.name, desc:v.desc };
     // value label for virtual: use a fake field object
@@ -1784,6 +1800,8 @@ const VIP_TIERS = [
         continue;
       }
       if(p===EVENT_COMBO_PATH){ const on = text==='true'; out = upsertScalar(out, 'events/state', 'int', on ? '1' : '0'); out = upsertScalar(out, 'events/activated_at_seconds', 'int', on ? String(Math.floor(Date.now() / 1000)) : '0'); out = replaceLeaf(out, 'crystals/stat', encVal('int', on ? '1' : '0')); continue; }
+      if(p===EVENT_RED_COMBO_PATH){ out = upsertScalar(out, 'events/currencies/red_crystal', 'float', text); out = upsertScalar(out, 'events/collected_currencies/red_crystal', 'float', text); continue; }
+      if(p===EVENT_BLUE_COMBO_PATH){ out = upsertScalar(out, 'events/currencies/blue_crystal', 'float', text); out = upsertScalar(out, 'events/collected_currencies/blue_crystal', 'float', text); continue; }
       if(p===VIP_COMBO_PATH){
         const tier = Math.max(0, Math.min(10, parseInt(text,10)||0));
         const pts = String((VIP_TIERS[tier]||VIP_TIERS[0]).pts);
