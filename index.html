@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor</title>
+<title>Butcher Hero Save Editor · Editor v33</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -165,20 +165,14 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 .field-icon { width:32px; height:32px; flex:0 0 32px; display:inline-flex; align-items:center; justify-content:center; font-size:16px; line-height:1; border-radius:4px; background:var(--field); border:1px solid var(--line); }
 .field-icon img { width:32px; height:32px; object-fit:contain; }
 .field-icon.gems { background:var(--gems-bg); }
-/* Plain sprite icons: no box, just the image */
 .field-icon.vip, .field-icon.amulet, .field-icon.weapon, .field-icon.accessory, .field-icon.gems, .field-icon.soul_common, .field-icon.soul_large, .field-icon.soul_huge, .field-icon.soul_great, .field-icon.soul_elite, .field-icon.soul_divine, .field-icon.soul_chaotic, .field-icon.magic_dust, .field-icon.geodes, .field-icon.enchant, .field-icon.tickets, .field-icon.sharpening, .field-icon.blacksmith_coins, .field-icon.boss_lava_crab, .field-icon.boss_berserker, .field-icon.boss_hydra, .field-icon.boss_lich, .field-icon.boss_vampire_king, .field-icon.boss_vikings, .field-icon.no_ads, .field-icon.soul_pass, .field-icon.crystal_pass, .field-icon.chaotic_pass, .field-icon.crystal_blacksmithing, .field-icon.crystal_max_geodes, .field-icon.crystal_geode_timer, .field-icon.crystal_enchant_efficiency, .field-icon.crystal_enchant_stones_upg, .field-icon.crystal_quality, .field-icon.crystal_sell_bonus, .field-icon.crystal_enchantment, .field-icon.crystal_slot2, .field-icon.level_pass_ticket, .field-icon.level_pass_tier_1, .field-icon.level_pass_tier_2, .field-icon.level_pass_tier_3, .field-icon.level_pass_tier_4, .field-icon.level_pass_tier_5 { background:transparent !important; border:none !important; padding:0 !important; box-shadow:none !important; }
-/* Large 44px sprite icons */
 .field-icon.geodes, .field-icon.tickets, .field-icon.magic_dust, .field-icon.enchant, .field-icon.vip, .field-icon.sharpening, .field-icon.boss_lava_crab, .field-icon.boss_berserker, .field-icon.boss_hydra, .field-icon.boss_lich, .field-icon.boss_vampire_king, .field-icon.boss_vikings, .field-icon.no_ads, .field-icon.soul_pass, .field-icon.crystal_pass, .field-icon.chaotic_pass, .field-icon.crystal_blacksmithing, .field-icon.crystal_max_geodes, .field-icon.crystal_geode_timer, .field-icon.crystal_enchant_efficiency, .field-icon.crystal_enchant_stones_upg, .field-icon.crystal_quality, .field-icon.crystal_sell_bonus, .field-icon.crystal_enchantment, .field-icon.crystal_slot2, .field-icon.level_pass_ticket { width:44px; height:44px; flex:0 0 44px; }
 .field-icon.geodes img, .field-icon.tickets img, .field-icon.magic_dust img, .field-icon.enchant img, .field-icon.vip img, .field-icon.sharpening img, .field-icon.boss_lava_crab img, .field-icon.boss_berserker img, .field-icon.boss_hydra img, .field-icon.boss_lich img, .field-icon.boss_vampire_king img, .field-icon.boss_vikings img, .field-icon.no_ads img, .field-icon.soul_pass img, .field-icon.crystal_pass img, .field-icon.chaotic_pass img, .field-icon.crystal_blacksmithing img, .field-icon.crystal_max_geodes img, .field-icon.crystal_geode_timer img, .field-icon.crystal_enchant_efficiency img, .field-icon.crystal_enchant_stones_upg img, .field-icon.crystal_quality img, .field-icon.crystal_sell_bonus img, .field-icon.crystal_enchantment img, .field-icon.crystal_slot2 img, .field-icon.level_pass_ticket img { width:44px; height:44px; }
-/* Wide level-pass tier banners */
 .field-icon.level_pass_tier_1, .field-icon.level_pass_tier_2, .field-icon.level_pass_tier_3, .field-icon.level_pass_tier_4, .field-icon.level_pass_tier_5 { width:88px; flex:0 0 88px; }
 .field-icon.level_pass_tier_1 img, .field-icon.level_pass_tier_2 img, .field-icon.level_pass_tier_3 img, .field-icon.level_pass_tier_4 img, .field-icon.level_pass_tier_5 img { width:88px; }
-/* Header centering (moved here from a stray <style> block) */
 header { text-align:center; } header h1 { text-align:center; margin:0 auto; } header .lead { margin:6px auto 0; text-align:center; } header h1 span { color:var(--accent); }
-/* Summary stats bar: 2 fields per row, 2 rows (grid, not one scrolling flex row) */
 #top-stats { display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; padding:12px 14px; }
 #top-stats > div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-/* VIP Privileges: fixed grid per tier - radio | badge | text */
 .row.vip-row { grid-template-columns:minmax(0,1fr); }
 .vip-tiers { display:flex; flex-direction:column; gap:6px; margin-top:8px; width:100%; min-width:0; }
 .vip-tier { display:grid; grid-template-columns:20px 72px minmax(0,1fr); align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; cursor:pointer; background:var(--field); min-width:0; }
@@ -197,6 +191,7 @@ header { text-align:center; } header h1 { text-align:center; margin:0 auto; } he
   <header>
     <h1>Butcher Hero <span>Save Editor</span></h1>
     <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Build 2026-11-08 · Crystal Event State Zero Rule v32</div>
+    <div id="editor-version" style="text-align:center;font-family:var(--mono);font-size:12px;margin-top:4px"><span style="display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface)">Editor v33 · 2026-11-10 · search-by-value · 2×2 summary · VIP grid · baked_rewards / last_position / item_slots hidden</span></div>
     <div class="panel" id="top-stats" aria-label="Account summary" hidden style="display:none;">
       <div style="white-space:nowrap"><b>Installed:</b> <span id="top-install">Unknown</span></div>
       <div style="white-space:nowrap"><b>App Version:</b> <span id="top-appversion">Unknown</span></div>
@@ -962,6 +957,7 @@ if (typeof module !== 'undefined') {
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const nowSec = () => Date.now() / 1000;
   const PAGE = 150;
+  const EDITOR_VERSION = 'Editor v33 · 2026-11-10';
   const st = { name: '', sample: false, locked: true, bytes: null, fields: [], edits: new Map(), errs: new Map(), q: '', mode: 'all', groups: new Map(), timers: new Set(), virtual: new Map() };
 
   const origText = f => f.kind === 'bool' ? String(f.v) : (f.kind === 'int' ? f.v.toString() : String(f.v));
