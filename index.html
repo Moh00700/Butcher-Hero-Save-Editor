@@ -128,7 +128,7 @@ body.locked .row { opacity: .45; filter: grayscale(.7); }
 body.locked .row input, body.locked .row textarea, body.locked .row button, body.locked .row .switch { pointer-events: none; cursor: not-allowed; }
 body.locked #tools { opacity: .45; }
 body.locked #tools button, body.locked #tools input { pointer-events: none; }
-#locknote { display: none; margin-top: 10px; padding: 10px 14px; border: 1px solid var(--accent); border-radius: 6px; background: var(--vip-soft); font-size: 14px; }
+#locknote { display: none; margin-top: 10px; padding: 10px 14px; border: 1px solid var(--accent); border-radius: 6px; background: rgba(245,197,24,.10); font-size: 14px; }
 body.locked #locknote { display: block; }
 textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vertical; white-space: pre; overflow: auto; font-size: 12px; line-height: 1.45; }
 .switch {
@@ -175,6 +175,19 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 .field-icon.level_pass_tier_1 img, .field-icon.level_pass_tier_2 img, .field-icon.level_pass_tier_3 img, .field-icon.level_pass_tier_4 img, .field-icon.level_pass_tier_5 img { width:88px; }
 /* Header centering (moved here from a stray <style> block) */
 header { text-align:center; } header h1 { text-align:center; margin:0 auto; } header .lead { margin:6px auto 0; text-align:center; } header h1 span { color:var(--accent); }
+/* Summary stats bar: 2 fields per row, 2 rows (grid, not one scrolling flex row) */
+#top-stats { display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; padding:12px 14px; }
+#top-stats > div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+/* VIP Privileges: fixed grid per tier - radio | badge | text */
+.row.vip-row { grid-template-columns:minmax(0,1fr); }
+.vip-tiers { display:flex; flex-direction:column; gap:6px; margin-top:8px; width:100%; min-width:0; }
+.vip-tier { display:grid; grid-template-columns:20px 72px minmax(0,1fr); align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; cursor:pointer; background:var(--field); min-width:0; }
+.vip-tier.sel { border-color:var(--vip); background:var(--vip-soft); }
+.vip-tier input { accent-color:var(--vip); flex:none; width:18px; height:18px; margin:0; justify-self:center; }
+.vip-tier-icon { width:72px; height:36px; object-fit:contain; flex:none; display:block; }
+.vip-tier-txt { display:block; min-width:0; overflow-wrap:anywhere; }
+.vip-tier-txt span { display:block; font-size:13px; color:var(--ink); font-weight:500; line-height:1.35; }
+.vip-tier-txt i { display:block; font-size:12px; color:var(--muted); font-style:normal; line-height:1.35; }
 </style>
 
 
@@ -184,11 +197,11 @@ header { text-align:center; } header h1 { text-align:center; margin:0 auto; } he
   <header>
     <h1>Butcher Hero <span>Save Editor</span></h1>
     <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Build 2026-11-08 · Crystal Event State Zero Rule v32</div>
-    <div class="panel" id="top-stats" aria-label="Account summary" hidden style="display:none;gap:16px;flex-wrap:nowrap;justify-content:space-between;align-items:center;margin:12px auto 0;max-width:880px;overflow-x:auto">
+    <div class="panel" id="top-stats" aria-label="Account summary" hidden style="display:none;">
       <div style="white-space:nowrap"><b>Installed:</b> <span id="top-install">Unknown</span></div>
+      <div style="white-space:nowrap"><b>App Version:</b> <span id="top-appversion">Unknown</span></div>
       <div style="white-space:nowrap"><b>Total Kills:</b> <span id="top-kills">Unknown</span></div>
       <div style="white-space:nowrap"><b>Deaths:</b> <span id="top-deaths">Unknown</span></div>
-      <div style="white-space:nowrap"><b>App Version:</b> <span id="top-appversion">Unknown</span></div>
     </div>
     <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
     <details class="panel tools" id="find-save">
@@ -990,7 +1003,7 @@ if (typeof module !== 'undefined') {
     // NOTE: the bar has an inline display style, which overrides the `hidden`
     // attribute, so we must toggle style.display itself (not just .hidden).
     const bar = document.getElementById('top-stats');
-    if (bar) { bar.hidden = !!st.sample; bar.style.display = st.sample ? 'none' : 'flex'; }
+    if (bar) { bar.hidden = !!st.sample; bar.style.display = st.sample ? 'none' : 'grid'; }
     if (st.sample) {
       for (const id of ['top-install', 'top-kills', 'top-appversion', 'top-deaths']) {
         const el = document.getElementById(id);
