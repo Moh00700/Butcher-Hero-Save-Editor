@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor · Editor v34</title>
+<title>Butcher Hero Save Editor · Editor v35</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -162,20 +162,14 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
 .path { display:flex; align-items:center; gap:6px; }
-/* ALL icons are the soul-icon size: 32x32. One base rule covers every field icon;
-   the wide VIP banners and 44px currency/boss icons no longer get bigger boxes. */
+/* ALL icons are the soul-icon size: 32x32. */
 .field-icon { width:32px; height:32px; flex:0 0 32px; display:inline-flex; align-items:center; justify-content:center; font-size:16px; line-height:1; border-radius:4px; background:var(--field); border:1px solid var(--line); }
 .field-icon img { width:32px; height:32px; object-fit:contain; }
 .field-icon.gems { background:var(--gems-bg); }
-/* Plain sprite icons: no box, just the image */
 .field-icon.vip, .field-icon.amulet, .field-icon.weapon, .field-icon.accessory, .field-icon.gems, .field-icon.soul_common, .field-icon.soul_large, .field-icon.soul_huge, .field-icon.soul_great, .field-icon.soul_elite, .field-icon.soul_divine, .field-icon.soul_chaotic, .field-icon.magic_dust, .field-icon.geodes, .field-icon.enchant, .field-icon.tickets, .field-icon.sharpening, .field-icon.blacksmith_coins, .field-icon.boss_lava_crab, .field-icon.boss_berserker, .field-icon.boss_hydra, .field-icon.boss_lich, .field-icon.boss_vampire_king, .field-icon.boss_vikings, .field-icon.no_ads, .field-icon.soul_pass, .field-icon.crystal_pass, .field-icon.chaotic_pass, .field-icon.crystal_blacksmithing, .field-icon.crystal_max_geodes, .field-icon.crystal_geode_timer, .field-icon.crystal_enchant_efficiency, .field-icon.crystal_enchant_stones_upg, .field-icon.crystal_quality, .field-icon.crystal_sell_bonus, .field-icon.crystal_enchantment, .field-icon.crystal_slot2, .field-icon.level_pass_ticket, .field-icon.level_pass_tier_1, .field-icon.level_pass_tier_2, .field-icon.level_pass_tier_3, .field-icon.level_pass_tier_4, .field-icon.level_pass_tier_5 { background:transparent !important; border:none !important; padding:0 !important; box-shadow:none !important; }
-/* Header centering (moved here from a stray <style> block) */
 header { text-align:center; } header h1 { text-align:center; margin:0 auto; } header .lead { margin:6px auto 0; text-align:center; } header h1 span { color:var(--accent); }
-/* Summary stats bar: 2 fields per row, 2 rows (grid, not one scrolling flex row) */
 #top-stats { display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; padding:12px 14px; }
 #top-stats > div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-/* VIP Privileges: fixed grid per tier - radio | badge | text. Badge is now also
-   32x32 like every other icon, so the wide VIP banners shrink into the same box. */
 .row.vip-row { grid-template-columns:minmax(0,1fr); }
 .vip-tiers { display:flex; flex-direction:column; gap:6px; margin-top:8px; width:100%; min-width:0; }
 .vip-tier { display:grid; grid-template-columns:20px 32px minmax(0,1fr); align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; cursor:pointer; background:var(--field); min-width:0; }
@@ -194,7 +188,7 @@ header { text-align:center; } header h1 { text-align:center; margin:0 auto; } he
   <header>
     <h1>Butcher Hero <span>Save Editor</span></h1>
     <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Build 2026-11-08 · Crystal Event State Zero Rule v32</div>
-    <div id="editor-version" style="text-align:center;font-family:var(--mono);font-size:12px;margin-top:4px"><span style="display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface)">Editor v34 · 2026-11-10 · search-by-value · 2×2 summary · VIP grid · all icons 32px · baked_rewards / last_position / item_slots hidden</span></div>
+    <div id="editor-version" style="text-align:center;font-family:var(--mono);font-size:12px;margin-top:4px"><span style="display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface)">Editor v35 · 2026-11-10 · spawner respawn restores charges · search-by-value · 2×2 summary · VIP grid · all icons 32px · baked_rewards / last_position / item_slots hidden</span></div>
     <div class="panel" id="top-stats" aria-label="Account summary" hidden style="display:none;">
       <div style="white-space:nowrap"><b>Installed:</b> <span id="top-install">Unknown</span></div>
       <div style="white-space:nowrap"><b>App Version:</b> <span id="top-appversion">Unknown</span></div>
@@ -240,7 +234,7 @@ header { text-align:center; } header h1 { text-align:center; margin:0 auto; } he
   <details class="panel tools" id="tools">
     <summary>Respawn trees and other spawners</summary>
     <div class="toolsbody">
-      <p>Sets the respawn timer of depleted spawners so they are ready again. Leave the filter empty for all of them.</p>
+      <p>Restores depleted spawners: refills their charges to max and sets their respawn timer. Leave the filter empty for all of them.</p>
       <input class="search" id="sp-filter" type="text" placeholder="Filter by name, e.g. tree, ice" autocomplete="off" spellcheck="false" aria-label="Spawner name filter">
       <button class="btn small" type="button" id="sp-now">Ready now</button>
       <button class="btn small" type="button" id="sp-10">Ready in 10 min</button>
@@ -960,7 +954,7 @@ if (typeof module !== 'undefined') {
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const nowSec = () => Date.now() / 1000;
   const PAGE = 150;
-  const EDITOR_VERSION = 'Editor v34 · 2026-11-10';
+  const EDITOR_VERSION = 'Editor v35 · 2026-11-10';
   const st = { name: '', sample: false, locked: true, bytes: null, fields: [], edits: new Map(), errs: new Map(), q: '', mode: 'all', groups: new Map(), timers: new Set(), virtual: new Map() };
 
   const origText = f => f.kind === 'bool' ? String(f.v) : (f.kind === 'int' ? f.v.toString() : String(f.v));
@@ -999,8 +993,6 @@ if (typeof module !== 'undefined') {
   }
   function updateTopStats(){
     // Summary bar shows ONLY after a real game_data.bin upload.
-    // NOTE: the bar has an inline display style, which overrides the `hidden`
-    // attribute, so we must toggle style.display itself (not just .hidden).
     const bar = document.getElementById('top-stats');
     if (bar) { bar.hidden = !!st.sample; bar.style.display = st.sample ? 'none' : 'grid'; }
     if (st.sample) {
@@ -1454,16 +1446,38 @@ if (typeof module !== 'undefined') {
   function respawn(text) {
     if (st.locked) { toast('Locked - upload your game_data.bin first.', 4000); return; }
     const flt = $('#sp-filter').value.trim().toLowerCase(), all = $('#sp-all').checked, now = nowSec();
-    let n = 0;
+    // Group fields by spawner: spawners/spawners_v3/<name>/<field>
+    const bySpawner = new Map();
     st.fields.forEach((f, i) => {
-      if (!f.path.startsWith('spawners/spawners_v3/') || !f.path.endsWith('/next_big_spawn_time')) return;
-      const name = f.path.split('/')[2];
-      if (flt && !name.toLowerCase().includes(flt)) return;
-      if (!all && Number(f.v) <= now) return;
-      setEdit(i, text); n++;
+      if (!f.path.startsWith('spawners/spawners_v3/')) return;
+      const parts = f.path.split('/');
+      if (parts.length !== 4) return;
+      if (!bySpawner.has(parts[2])) bySpawner.set(parts[2], {});
+      bySpawner.get(parts[2])[parts[3]] = { f, i };
     });
+    let n = 0;
+    for (const [name, fs] of bySpawner) {
+      if (flt && !name.toLowerCase().includes(flt)) continue;
+      // A spawner needs respawning when it is depleted (no charges left) or its
+      // respawn timer is still running. The OLD code only matched timers in
+      // the future, so a fully depleted spawner (charges 0, timer 0) was skipped.
+      const remaining = fs['remaining_charges'] ? Number(fs['remaining_charges'].f.v) : NaN;
+      const nextBig = fs['next_big_spawn_time'] ? Number(fs['next_big_spawn_time'].f.v) : NaN;
+      const depleted = remaining <= 0;
+      const waiting = nextBig > now;
+      if (!all && !depleted && !waiting) continue;
+      // The OLD code only set next_big_spawn_time and left remaining_charges
+      // at 0, so the spawner still had nothing to harvest. Restore charges
+      // to that spawner's own max, then set its timer.
+      if (fs['remaining_charges'] && fs['known_max_charges']) {
+        const max = Number(fs['known_max_charges'].f.v);
+        if (max > 0) setEdit(fs['remaining_charges'].i, String(max));
+      }
+      if (fs['next_big_spawn_time']) setEdit(fs['next_big_spawn_time'].i, text);
+      n++;
+    }
     renderList(); updateBar();
-    toast(n ? n + (n === 1 ? ' spawner' : ' spawners') + ' set to respawn' : 'No depleted spawners matched. Tick the box to include all of them.', 6000);
+    toast(n ? n + (n === 1 ? ' spawner' : ' spawners') + ' refilled + timer set' : 'No depleted spawners matched. Tick the box to include all of them.', 6000);
   }
   $('#sp-now').addEventListener('click', () => respawn('0'));
   $('#sp-10').addEventListener('click', () => respawn('+10m'));
