@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor · Editor v35</title>
+<title>Butcher Hero Save Editor · Editor v36</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -188,7 +188,7 @@ header { text-align:center; } header h1 { text-align:center; margin:0 auto; } he
   <header>
     <h1>Butcher Hero <span>Save Editor</span></h1>
     <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Build 2026-11-08 · Crystal Event State Zero Rule v32</div>
-    <div id="editor-version" style="text-align:center;font-family:var(--mono);font-size:12px;margin-top:4px"><span style="display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface)">Editor v35 · 2026-11-10 · spawner respawn restores charges · search-by-value · 2×2 summary · VIP grid · all icons 32px · baked_rewards / last_position / item_slots hidden</span></div>
+    <div id="editor-version" style="text-align:center;font-family:var(--mono);font-size:12px;margin-top:4px"><span style="display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface)">Editor v36 · 2026-11-10 · respawn applies to ALL matched spawners · search-by-value · 2×2 summary · VIP grid · all icons 32px · baked_rewards / last_position / item_slots hidden</span></div>
     <div class="panel" id="top-stats" aria-label="Account summary" hidden style="display:none;">
       <div style="white-space:nowrap"><b>Installed:</b> <span id="top-install">Unknown</span></div>
       <div style="white-space:nowrap"><b>App Version:</b> <span id="top-appversion">Unknown</span></div>
@@ -234,11 +234,10 @@ header { text-align:center; } header h1 { text-align:center; margin:0 auto; } he
   <details class="panel tools" id="tools">
     <summary>Respawn trees and other spawners</summary>
     <div class="toolsbody">
-      <p>Restores depleted spawners: refills their charges to max and sets their respawn timer. Leave the filter empty for all of them.</p>
+      <p>Refills <b>every</b> matching spawner to max charges and sets its respawn timer — including spawners that still have charges left. Leave the filter empty for all of them.</p>
       <input class="search" id="sp-filter" type="text" placeholder="Filter by name, e.g. tree, ice" autocomplete="off" spellcheck="false" aria-label="Spawner name filter">
       <button class="btn small" type="button" id="sp-now">Ready now</button>
       <button class="btn small" type="button" id="sp-10">Ready in 10 min</button>
-      <label for="sp-all"><input type="checkbox" id="sp-all"> Include spawners with no timer running</label>
     </div>
   </details>
 
@@ -954,7 +953,7 @@ if (typeof module !== 'undefined') {
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const nowSec = () => Date.now() / 1000;
   const PAGE = 150;
-  const EDITOR_VERSION = 'Editor v35 · 2026-11-10';
+  const EDITOR_VERSION = 'Editor v36 · 2026-11-10';
   const st = { name: '', sample: false, locked: true, bytes: null, fields: [], edits: new Map(), errs: new Map(), q: '', mode: 'all', groups: new Map(), timers: new Set(), virtual: new Map() };
 
   const origText = f => f.kind === 'bool' ? String(f.v) : (f.kind === 'int' ? f.v.toString() : String(f.v));
@@ -1445,7 +1444,7 @@ if (typeof module !== 'undefined') {
 
   function respawn(text) {
     if (st.locked) { toast('Locked - upload your game_data.bin first.', 4000); return; }
-    const flt = $('#sp-filter').value.trim().toLowerCase(), all = $('#sp-all').checked, now = nowSec();
+    const flt = $('#sp-filter').value.trim().toLowerCase(), now = nowSec();
     // Group fields by spawner: spawners/spawners_v3/<name>/<field>
     const bySpawner = new Map();
     st.fields.forEach((f, i) => {
@@ -1457,18 +1456,10 @@ if (typeof module !== 'undefined') {
     });
     let n = 0;
     for (const [name, fs] of bySpawner) {
+      // The ONLY filter is the name box. No charges / timer gate: a spawner
+      // with charges left gets refilled to max too - that was the v35 bug,
+      // where only depleted (0 charges) spawners were touched.
       if (flt && !name.toLowerCase().includes(flt)) continue;
-      // A spawner needs respawning when it is depleted (no charges left) or its
-      // respawn timer is still running. The OLD code only matched timers in
-      // the future, so a fully depleted spawner (charges 0, timer 0) was skipped.
-      const remaining = fs['remaining_charges'] ? Number(fs['remaining_charges'].f.v) : NaN;
-      const nextBig = fs['next_big_spawn_time'] ? Number(fs['next_big_spawn_time'].f.v) : NaN;
-      const depleted = remaining <= 0;
-      const waiting = nextBig > now;
-      if (!all && !depleted && !waiting) continue;
-      // The OLD code only set next_big_spawn_time and left remaining_charges
-      // at 0, so the spawner still had nothing to harvest. Restore charges
-      // to that spawner's own max, then set its timer.
       if (fs['remaining_charges'] && fs['known_max_charges']) {
         const max = Number(fs['known_max_charges'].f.v);
         if (max > 0) setEdit(fs['remaining_charges'].i, String(max));
@@ -1477,7 +1468,7 @@ if (typeof module !== 'undefined') {
       n++;
     }
     renderList(); updateBar();
-    toast(n ? n + (n === 1 ? ' spawner' : ' spawners') + ' refilled + timer set' : 'No depleted spawners matched. Tick the box to include all of them.', 6000);
+    toast(n ? n + (n === 1 ? ' spawner' : ' spawners') + ' refilled + timer set' : 'No spawners matched that filter.', 6000);
   }
   $('#sp-now').addEventListener('click', () => respawn('0'));
   $('#sp-10').addEventListener('click', () => respawn('+10m'));
