@@ -254,8 +254,8 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 <div class="wrap">
   <header>
     <h1>Butcher Hero <span>Save Editor</span></h1>
-    <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Build 2026-11-08 · Crystal Event Extra Under Ready v31</div>
-    <div class="panel" id="top-stats" aria-label="Account summary" style="display:flex;gap:16px;flex-wrap:nowrap;justify-content:space-between;align-items:center;margin:12px auto 0;max-width:880px;overflow-x:auto">
+    <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Build 2026-11-08 · Crystal Event State Zero Rule v32</div>
+    <div class="panel" id="top-stats" aria-label="Account summary" hidden style="display:flex;gap:16px;flex-wrap:nowrap;justify-content:space-between;align-items:center;margin:12px auto 0;max-width:880px;overflow-x:auto">
       <div style="white-space:nowrap"><b>Installed:</b> <span id="top-install">Unknown</span></div>
       <div style="white-space:nowrap"><b>Total Kills:</b> <span id="top-kills">Unknown</span></div>
       <div style="white-space:nowrap"><b>Deaths:</b> <span id="top-deaths">Unknown</span></div>
@@ -287,7 +287,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
   <div class="panel after" id="after" hidden></div>
 
   <section class="toolbar" aria-label="Find fields">
-    <input class="search" id="q" type="search" placeholder="Search fields, e.g. gems, knife, timestamp" autocomplete="off" spellcheck="false" aria-label="Search fields">
+    <input class="search" id="q" type="search" placeholder="Search fields or values, e.g. gems, knife, 1234, true" autocomplete="off" spellcheck="false" aria-label="Search fields">
     <div class="chips" role="group" aria-label="Show">
       <button class="fchip" type="button" data-mode="all" aria-pressed="true">All</button>
       <button class="fchip" type="button" data-mode="changed" aria-pressed="false">Changed</button>
@@ -486,7 +486,7 @@ function children(b, i) {
 
 /* Categories removed from the editor (their fields are hidden, never listed/searched,
    but are preserved untouched in the save when you hit Save) */
-const REMOVED_GROUPS = new Set(['promo_codes','notifications','rescue_quest','limited_mode','mines','quests','secret_chests','meta_stats','island_mastery','cashback','player_statistics','achievements','daily_procs','mails','shop','amulet','gates']);
+const REMOVED_GROUPS = new Set(['promo_codes','notifications','rescue_quest','limited_mode','mines','quests','secret_chests','meta_stats','island_mastery','cashback','player_statistics','achievements','daily_procs','mails','shop','amulet','gates','baked_rewards']);
 
 /* String fields that are editable: the event schedule stamps. Every other
    string-valued field in the save stays untouched. */
@@ -643,6 +643,8 @@ function listFields(b, root) {
         // skipped - event_analytics tab removed per request
       } else if (pth.startsWith('crystals/crystals_v2/')) {
         // skipped - crystals_v2 fields hidden from Crystal System tab
+      } else if (pth.startsWith('player/last_position/') || pth.startsWith('player/item_slots/')) {
+        // skipped - last_position + item_slots hidden from Player tab per request
       } else if (pth.startsWith('crystals/crystals/')) {
         // skipped - individual crystal entries (0-4) hidden per request
       } else if (HIDDEN_FIELDS.has(pth)) {
@@ -1021,7 +1023,7 @@ if (typeof module !== 'undefined') {
   const st = { name: '', sample: false, locked: true, bytes: null, fields: [], edits: new Map(), errs: new Map(), q: '', mode: 'all', groups: new Map(), timers: new Set(), virtual: new Map() };
 
   const origText = f => f.kind === 'bool' ? String(f.v) : (f.kind === 'int' ? f.v.toString() : String(f.v));
-  const curText = i => st.edits.has(i) ? st.edits.get(i) : origText(st.fields[i]);
+  const curText = i => { if (st.fields[i] && st.fields[i].path === 'events/extra_duration' && effectiveEventState() === 0) return '0'; return st.edits.has(i) ? st.edits.get(i) : origText(st.fields[i]); };
   const fmtBytes = n => n < 1024 ? n + ' bytes' : (n / 1024).toFixed(1) + ' KB';
 
   let toastTimer;
@@ -1055,9 +1057,11 @@ if (typeof module !== 'undefined') {
     }catch(e){ return null; }
   }
   function updateTopStats(){
-    // The page starts on the EXAMPLE save (total_kills: 1234 is baked into it).
-    // Never present example values as yours: until a real game_data.bin loads,
-    // every summary field stays Unknown.
+    // Summary stats bar shows ONLY when a real game_data.bin has been uploaded.
+    // On the example save (or before any upload) the whole bar stays hidden,
+    // so example values are never presented as yours.
+    const bar = document.getElementById('top-stats');
+    if (bar) bar.hidden = !!st.sample;
     if (st.sample) {
       for (const id of ['top-install', 'top-kills', 'top-appversion', 'top-deaths']) {
         const el = document.getElementById(id);
@@ -1336,11 +1340,26 @@ if (typeof module !== 'undefined') {
       '<div class="ctl">' + ctl + '</div><div class="hint' + (h.err ? ' err' : '') + '">' + esc(h.t) + '</div></div>';
   }
 
+  // Search-by-value: a query matches a field when it appears in the path,
+  // display name / description, the current (edited) value, the original
+  // value, the friendly value label, or a bool synonym (on/off, yes/no).
+  function haystackHas(hay, q){
+    if(!q) return true;
+    for(const h of hay){ if(h!=null && String(h).toLowerCase().includes(q)) return true; }
+    return false;
+  }
+  function boolSynonyms(cur){
+    if(cur==='true') return ['true','on','yes','unlocked','enabled'];
+    if(cur==='false') return ['false','off','no','locked','disabled'];
+    return [];
+  }
   function visibleIdx() {
     const q = st.q.trim().toLowerCase(), out = [];
     for (let i = 0; i < st.fields.length; i++) {
       const f = st.fields[i];
-      if (q && !f.path.toLowerCase().includes(q)) continue;
+      const info = fieldInfoFor(f.path);
+      const cur = curText(i);
+      if (q && !haystackHas([f.path, info && info.name, info && info.desc, cur, origText(f), valueLabelFor(f, cur), ...boolSynonyms(cur)], q)) continue;
       if (st.mode === 'changed' && !st.edits.has(i)) continue;
       if (st.mode === 'timers' && !st.timers.has(i)) continue;
       if (st.mode === 'switches' && f.kind !== 'bool' && f.path !== 'ab_tests/tests/level_pass') continue;
@@ -1350,7 +1369,11 @@ if (typeof module !== 'undefined') {
     try{
       for (const v of missingVirtuals()){
         const dp=virtualDisplayPath(v);
-        if (q && !dp.toLowerCase().includes(q) && !(v.name||'').toLowerCase().includes(q) && !(v.desc||'').toLowerCase().includes(q)) continue;
+        let vcur = st.virtual.has(v.path) ? st.virtual.get(v.path) : (v.def || '');
+        if (vcur==='' && v.path===EVENT_RED_COMBO_PATH) { try{ vcur=String(eventRedCurrent()); }catch(e){} }
+        if (vcur==='' && v.path===EVENT_BLUE_COMBO_PATH) { try{ vcur=String(eventBlueCurrent()); }catch(e){} }
+        let vlabel=''; try{ vlabel=valueLabelFor({path:v.path, kind:v.kind}, vcur||v.def||''); }catch(e){}
+        if (q && !haystackHas([dp, v.name, v.desc, vcur, v.def, vlabel, ...boolSynonyms(vcur)], q)) continue;
         if (st.mode === 'changed' && !st.virtual.has(v.path)) continue;
         if (st.mode === 'timers') continue;
         if (st.mode === 'switches' && v.kind !== 'bool') continue;
@@ -1537,7 +1560,7 @@ if (typeof module !== 'undefined') {
       }
     }
     let out;
-    try { out = applyEdits(st.bytes, edits); if (st.virtual.size) { out = insertVirtual(out, st.virtual); } let stamped = false; for (const [purch, time] of PASS_TIME_COMBOS) { const fi = st.fields.findIndex(f => f.path === purch); if (fi >= 0 && st.edits.get(fi) === 'true') { out = upsertScalar(out, time, 'float', String(Math.floor(now))); stamped = true; } } if (stamped) resign(out); if (!verify(out)) throw new Error('hash check failed'); }
+    try { out = applyEdits(st.bytes, edits); out = insertVirtual(out, st.virtual); let stamped = false; for (const [purch, time] of PASS_TIME_COMBOS) { const fi = st.fields.findIndex(f => f.path === purch); if (fi >= 0 && st.edits.get(fi) === 'true') { out = upsertScalar(out, time, 'float', String(Math.floor(now))); stamped = true; } } if (stamped) resign(out); if (!verify(out)) throw new Error('hash check failed'); }
     catch (e) { toast('Could not build the file: ' + (e.message || e), 8000); return; }
 
     const base = st.sample ? 'example_save.bin' : 'game_data.bin';
@@ -1595,8 +1618,9 @@ if (typeof module !== 'undefined') {
   function eventComboCurrent(){ try{ const stt = Number(rawTopValue('events/state')); const act = Number(rawTopValue('events/activated_at_seconds')); if (stt > 0 && act > 0) return true; if (stt === 0 && act === 0) return false; return false; }catch(e){ return false; } }
   const EVENT_RED_COMBO_PATH = '__combo__/events/red_crystal_golem';
   const EVENT_BLUE_COMBO_PATH = '__combo__/events/blue_crystal_golem';
-  function eventRedCurrent(){ try{ const a = rawTopValue('events/currencies/red_crystal'); if (typeof a === 'number') return a; const b = rawTopValue('events/collected_currencies/red_crystal'); return (typeof b === 'number' ? b : 0); }catch(e){ return 0; } }
-  function eventBlueCurrent(){ try{ const a = rawTopValue('events/currencies/blue_crystal'); if (typeof a === 'number') return a; const b = rawTopValue('events/collected_currencies/blue_crystal'); return (typeof b === 'number' ? b : 0); }catch(e){ return 0; } }
+  function effectiveEventState(){ try{ if (st.virtual.has(EVENT_COMBO_PATH)) return st.virtual.get(EVENT_COMBO_PATH)==='true' ? 1 : 0; return Number(rawTopValue('events/state')) || 0; }catch(e){ return 0; } }
+  function eventRedCurrent(){ try{ if (effectiveEventState() === 0) return 0; }catch(e){}  try{ const a = rawTopValue('events/currencies/red_crystal'); if (typeof a === 'number') return a; const b = rawTopValue('events/collected_currencies/red_crystal'); return (typeof b === 'number' ? b : 0); }catch(e){ return 0; } }
+  function eventBlueCurrent(){ try{ if (effectiveEventState() === 0) return 0; }catch(e){}  try{ const a = rawTopValue('events/currencies/blue_crystal'); if (typeof a === 'number') return a; const b = rawTopValue('events/collected_currencies/blue_crystal'); return (typeof b === 'number' ? b : 0); }catch(e){ return 0; } }
   const VIP_COMBO_PATH = '__combo__/vip/privileges';
   const VIP_FIELDS = ['currency/balances/vip.points','currency/balances/vip_points','currency/balances/vip','player/vip_points'];
 const VIP_TIERS = [
@@ -1631,7 +1655,7 @@ const VIP_TIERS = [
     const present=new Set(st.fields.map(f=>f.path));
     const hasCrystalSlots = st.fields.some(f=>f.path.startsWith('crystals/slots/'));
     const hasWeapon5 = st.fields.some(f=>f.path.includes('weapon_5_vip'));
-    return VIRTUAL_FIELDS.filter(v=>!present.has(v.path) && !(v.path==='__slots__/player/item_slots/weapon_5_vip' && hasWeapon5));
+    return VIRTUAL_FIELDS.filter(v=>!present.has(v.path) && !(v.path==='__slots__/player/item_slots/weapon_5_vip' && hasWeapon5) && !virtualDisplayPath(v).startsWith('player/last_position/') && !virtualDisplayPath(v).startsWith('player/item_slots/'));
   }
   function virtualRowHTML(v){
     const dp=virtualDisplayPath(v);
@@ -1831,6 +1855,8 @@ const VIP_TIERS = [
       const vf=VIRTUAL_FIELDS.find(v=>v.path===p); if(!vf) continue;
       out=insertScalar(out, p, vf.kind, text);
     }
+    // Rule: if events/state ends up 0, red/blue golem + extra_duration are all 0 (overwrites any value typed while off)
+    try{ const finalState = virtual.has(EVENT_COMBO_PATH) ? (virtual.get(EVENT_COMBO_PATH)==='true' ? 1 : 0) : (Number(rawTopValue('events/state')) || 0); if (finalState === 0) { out = replaceLeaf(out, 'events/currencies/red_crystal', encVal('float', '0')); out = replaceLeaf(out, 'events/collected_currencies/red_crystal', encVal('float', '0')); out = replaceLeaf(out, 'events/currencies/blue_crystal', encVal('float', '0')); out = replaceLeaf(out, 'events/collected_currencies/blue_crystal', encVal('float', '0')); const exF = st.fields.find(f => f.path === 'events/extra_duration'); if (exF) out = replaceLeaf(out, 'events/extra_duration', encVal(exF.kind, '0')); } }catch(e){}
     resign(out);
     return out;
   }
