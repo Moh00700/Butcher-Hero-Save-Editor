@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor · Editor v37</title>
+<title>Butcher Hero Save Editor · Editor v38</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -188,7 +188,7 @@ header { text-align:center; } header h1 { text-align:center; margin:0 auto; } he
   <header>
     <h1>Butcher Hero <span>Save Editor</span></h1>
     <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Build 2026-11-08 · Crystal Event State Zero Rule v32</div>
-    <div id="editor-version" style="text-align:center;font-family:var(--mono);font-size:12px;margin-top:4px"><span style="display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface)">Editor v37 · 2026-11-10 · respawn also rewinds last_spawn_time · search-by-value · 2×2 summary · VIP grid · all icons 32px · baked_rewards / last_position / item_slots hidden</span></div>
+    <div id="editor-version" style="text-align:center;font-family:var(--mono);font-size:12px;margin-top:4px"><span style="display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface)">Editor v38 · 2026-11-10 · Spawners tab hidden, Respawn tool kept · respawn rewinds clock · search-by-value · 2×2 summary · VIP grid · all icons 32px</span></div>
     <div class="panel" id="top-stats" aria-label="Account summary" hidden style="display:none;">
       <div style="white-space:nowrap"><b>Installed:</b> <span id="top-install">Unknown</span></div>
       <div style="white-space:nowrap"><b>App Version:</b> <span id="top-appversion">Unknown</span></div>
@@ -953,7 +953,7 @@ if (typeof module !== 'undefined') {
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const nowSec = () => Date.now() / 1000;
   const PAGE = 150;
-  const EDITOR_VERSION = 'Editor v37 · 2026-11-10';
+  const EDITOR_VERSION = 'Editor v38 · 2026-11-10';
   const st = { name: '', sample: false, locked: true, bytes: null, fields: [], edits: new Map(), errs: new Map(), q: '', mode: 'all', groups: new Map(), timers: new Set(), virtual: new Map() };
 
   const origText = f => f.kind === 'bool' ? String(f.v) : (f.kind === 'int' ? f.v.toString() : String(f.v));
@@ -1289,6 +1289,9 @@ if (typeof module !== 'undefined') {
     const q = st.q.trim().toLowerCase(), out = [];
     for (let i = 0; i < st.fields.length; i++) {
       const f = st.fields[i];
+      // Spawners tab hidden (all its fields) - use the Respawn tool above instead.
+      // The fields stay in st.fields so respawn() and Save still work.
+      if (f.path.startsWith('spawners/')) continue;
       const info = fieldInfoFor(f.path);
       const cur = curText(i);
       if (q && !haystackHas([f.path, info && info.name, info && info.desc, cur, origText(f), valueLabelFor(f, cur), ...boolSynonyms(cur)], q)) continue;
@@ -1445,9 +1448,7 @@ if (typeof module !== 'undefined') {
   function respawn(text) {
     if (st.locked) { toast('Locked - upload your game_data.bin first.', 4000); return; }
     const flt = $('#sp-filter').value.trim().toLowerCase(), now = nowSec();
-    // Target time: '0' = now, '+10m' = now + 10 min (parsed the same way as other timers).
     const target = text === '0' ? now : (parseTimeText(text, now) ?? now);
-    // Group fields by spawner: spawners/spawners_v3/<name>/<field>
     const bySpawner = new Map();
     st.fields.forEach((f, i) => {
       if (!f.path.startsWith('spawners/spawners_v3/')) return;
@@ -1458,20 +1459,11 @@ if (typeof module !== 'undefined') {
     });
     let n = 0;
     for (const [name, fs] of bySpawner) {
-      // The ONLY filter is the name box - no charges / timer gate.
       if (flt && !name.toLowerCase().includes(flt)) continue;
       const max = fs['known_max_charges'] ? Number(fs['known_max_charges'].f.v) : 0;
       const period = fs['charges_sync_period'] ? Number(fs['charges_sync_period'].f.v) : 0;
-      // 1) Stored charges -> max (in case the game trusts the stored value).
       if (fs['remaining_charges'] && max > 0) setEdit(fs['remaining_charges'].i, String(max));
-      // 2) Timer -> target time.
       if (fs['next_big_spawn_time']) setEdit(fs['next_big_spawn_time'].i, text);
-      // 3) Rewind the spawner clock. WHY: v36 only wrote 1) + 2), but charged
-      // spawners still did not respawn in game - the game recalculates charges
-      // from last_spawn_time on load (elapsed / charges_sync_period) and that
-      // overwrote the stored remaining_charges. Rewinding last_spawn_time to
-      // (target - period * max) makes the game's own math yield a full set of
-      // charges at the target time, for depleted AND charged spawners alike.
       if (fs['last_spawn_time']) {
         const rewound = (period > 0 && max > 0) ? Math.floor(target - period * max) : 0;
         setEdit(fs['last_spawn_time'].i, String(rewound));
