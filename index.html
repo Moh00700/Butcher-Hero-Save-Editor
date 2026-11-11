@@ -975,30 +975,6 @@ if (typeof module !== 'undefined') {
     }catch(e){}
     return bytes;
   }
-  function estimateHealthMultiplier(){
-    // Best-effort multiplier from the parts the save actually stores.
-    // Missing: the Achievements factor (game static tables, not in the save), so this is slightly low.
-    // Type 7 (Crystal Event) assumed +0.7% per point: 40 -> x1.28, the only data point available.
-    try{
-      let m = 1, found = false;
-      const mods = {};
-      st.fields.forEach((f, i)=>{
-        const mm = f.path.match(/^player\/stats\/0\/modifiers\/(\d+)\/(value|modifier_type)$/);
-        if(!mm) return;
-        (mods[mm[1]] = mods[mm[1]] || {})[mm[2]] = parseFloat(curText(i));
-      });
-      for(const idx of Object.keys(mods)){
-        const tt = mods[idx].modifier_type, vv = mods[idx].value;
-        if(!isFinite(tt) || !isFinite(vv)) continue;
-        if(tt === 4){ m *= (1 + vv); found = true; }
-        else if(tt === 7){ m *= (1 + vv * 0.007); found = true; }
-      }
-      let pct = 0;
-      st.fields.forEach((f)=>{ if(f.path.startsWith('amulet/upgrade_levels/graph_health_percent')) pct += Number(f.v) || 0; });
-      if(pct > 0){ m *= (1 + pct / 100); found = true; }
-      return found ? m : 2.55;
-    }catch(e){ return 2.55; }
-  }
   
 
   function loadBytes(b, name) {
@@ -1023,7 +999,7 @@ if (typeof module !== 'undefined') {
     $('#fmeta').innerHTML = '<span>' + fmtBytes(b.length) + '</span>' +
       (valid ? '<span class="chip ok">hash valid</span>' : '<span class="chip warn">hash invalid, fixed on save</span>') +
       '<span class="chip">App Version: ' + esc(appVer) + '</span>';
-    st.virtual.clear();
+        st.virtual.clear();
     $('#after').hidden = true;
     try{ restoreAutosave(b, name); }catch(e){}
     renderList(); updateBar();
@@ -1353,8 +1329,6 @@ if (typeof module !== 'undefined') {
     // VIP combo first in its tab
     const vipGroup = st.groups.get('Vip Privileges');
     if (vipGroup) { const j = vipGroup.findIndex(x => x === 'v:' + VIP_COMBO_PATH); if (j > 0) { vipGroup.splice(j, 1); vipGroup.unshift('v:' + VIP_COMBO_PATH); } }
-    // Add Health + Health multiplier first in the Player tab
-    { const plGroup = st.groups.get('player'); if (plGroup) { const j = plGroup.findIndex(x => x === 'v:' + HEALTH_COMBO_PATH); if (j > 0) { plGroup.splice(j, 1); plGroup.unshift('v:' + HEALTH_COMBO_PATH); } const j2 = plGroup.findIndex(x => x === 'v:' + HEALTH_MULT_PATH); if (j2 > 1) { plGroup.splice(j2, 1); plGroup.splice(1, 0, 'v:' + HEALTH_MULT_PATH); } } }
     // Relock helpers first in their tabs
     { const aGroup = st.groups.get('achievements'); if (aGroup) { const j = aGroup.findIndex(x => x === 'v:' + ACH_RELOCK_PATH); if (j > 0) { aGroup.splice(j, 1); aGroup.unshift('v:' + ACH_RELOCK_PATH); } } }
     { const amGroup = st.groups.get('amulet'); if (amGroup) { const j = amGroup.findIndex(x => x === 'v:' + AMULET_RELOCK_PATH); if (j > 0) { amGroup.splice(j, 1); amGroup.unshift('v:' + AMULET_RELOCK_PATH); } } }
@@ -1506,7 +1480,7 @@ if (typeof module !== 'undefined') {
     try { out = applyEdits(st.bytes, edits); out = insertVirtual(out, st.virtual); let stamped = false; for (const [purch, time] of PASS_TIME_COMBOS) { const fi = st.fields.findIndex(f => f.path === purch); if (fi >= 0 && st.edits.get(fi) === 'true') { out = upsertScalar(out, time, 'float', String(Math.floor(now))); stamped = true; } } if (stamped) resign(out); if (!verify(out)) throw new Error('hash check failed'); }
     catch (e) { toast('Could not build the file: ' + (e.message || e), 8000); return; }
 
-    if (st.virtual.has(HEALTH_COMBO_PATH) || st.virtual.has(ACH_RELOCK_PATH) || st.virtual.has(AMULET_RELOCK_PATH)) { st.virtual.delete(HEALTH_COMBO_PATH); st.virtual.delete(ACH_RELOCK_PATH); st.virtual.delete(AMULET_RELOCK_PATH); try{ autosaveSoon(); }catch(e){} renderList(); updateBar(); }
+    if (st.virtual.has(ACH_RELOCK_PATH) || st.virtual.has(AMULET_RELOCK_PATH)) { st.virtual.delete(ACH_RELOCK_PATH); st.virtual.delete(AMULET_RELOCK_PATH); try{ autosaveSoon(); }catch(e){} renderList(); updateBar(); }
     const base = 'game_data.bin';
     const steps = '<p><b>Next:</b> close the game completely, back up your original <code>game_data.bin</code>, then replace it with this file. The name must be exactly <code>game_data.bin</code>.</p>';
     if (window.claude && typeof window.claude.use === 'function') {
@@ -1546,8 +1520,6 @@ if (typeof module !== 'undefined') {
     { path:'crystals/upgrade_levels/crystal_geode_timer', kind:'int', cat:'Crystals & VIP', name:'Geode Spawn Timer', desc:'How fast new geodes spawn. Max 3.', def:'1' },
     { path:'crystals/upgrade_levels/crystal_enchantment_stones', kind:'int', cat:'Crystals & VIP', name:'Enchantment Stones', desc:'Enchantment Stones upgrade level. Max 2.', def:'1' },
     { path:'crystals/upgrade_levels/crystal_slot2_unlock', kind:'int', cat:'Crystals & VIP', name:'Second Crystal Slot', desc:'Unlocks the second crystal slot. 0 = locked, 1 = unlocked. Max 1.', def:'0' },
-    { path:'__combo__/player/add_health_millions', kind:'float', cat:'Player', name:'Health', desc:'Add Health, in millions of total HP. Type 10 to add about 10M total HP. On Save, adds millions × 1,000,000 ÷ your Health multiplier (the field below) to player/stats/0/modifiers/0/value (the Enemy health modifier).', def:'0' },
-    { path:'__combo__/player/health_multiplier', kind:'float', cat:'Player', name:'Health multiplier', desc:'The Percent number from your Health popup (e.g. 2.55). The Health field uses this instead of a fixed 2.55. Editor-only: never written to the save, kept between sessions. Leave it empty to use the auto-estimate from your save (Secret Chest + Crystal Event + Soul Tree nodes; Achievements not included, so the estimate is slightly low).', def:'' },
     { path:'__combo__/achievements/relock', kind:'int', cat:'Achievements', name:'Relock achievement', desc:'Type an achievement number (e.g. 4) to lock it again: on Save, is_activated, is_reward_granted, is_bonus_shown, is_toast_shown and is_seen go to false. is_earned and progress are KEPT — this matches the real before-state (earned but not activated), so you can activate it again in-game. Back up your save first.', def:'' },
     { path:'__combo__/amulet/relock_node', kind:'str', cat:'Amulet', name:'Relock Soul Tree node', desc:'Type a Soul Tree node key (e.g. graph_health_flat_1_15) to remove it entirely on Save, as if never bought. Setting the level to 0 did not re-lock it, so the key is deleted instead. Souls and amulet XP spent on it are NOT refunded. To test one node: relock it, check the Health popup, then buy it again in-game.', def:'' },
     ];
@@ -1569,8 +1541,6 @@ if (typeof module !== 'undefined') {
   function eventRedCurrent(){ try{ if (effectiveEventState() === 0) return 0; }catch(e){}  try{ const a = rawTopValue('events/currencies/red_crystal'); if (typeof a === 'number') return a; const b = rawTopValue('events/collected_currencies/red_crystal'); return (typeof b === 'number' ? b : 0); }catch(e){ return 0; } }
   function eventBlueCurrent(){ try{ if (effectiveEventState() === 0) return 0; }catch(e){}  try{ const a = rawTopValue('events/currencies/blue_crystal'); if (typeof a === 'number') return a; const b = rawTopValue('events/collected_currencies/blue_crystal'); return (typeof b === 'number' ? b : 0); }catch(e){ return 0; } }
   const VIP_COMBO_PATH = '__combo__/vip/privileges';
-  const HEALTH_COMBO_PATH = '__combo__/player/add_health_millions';
-  const HEALTH_MULT_PATH = '__combo__/player/health_multiplier';
   const ACH_RELOCK_PATH = '__combo__/achievements/relock';
   const AMULET_RELOCK_PATH = '__combo__/amulet/relock_node';
   const VIP_FIELDS = ['currency/balances/vip.points','currency/balances/vip_points','currency/balances/vip','player/vip_points'];
@@ -1633,10 +1603,10 @@ const VIP_TIERS = [
     const isVipTier=(v.kind==='tier' && v.path===VIP_COMBO_PATH);
     return '<div class="row'+(isSet?' changed':'')+(isVipTier?' vip-row':'')+'" data-vrow="'+esc(v.path)+'">' +
       '<div><div class="path">'+iconHTML+'<span><span class="dim">'+esc(parent)+'</span><b>'+esc(leaf)+'</b></span></div>' +
-      '<div class="sub">'+((v.path===COMBO_PATH || v.path===VIP_COMBO_PATH || v.path===EVENT_COMBO_PATH || v.path===HEALTH_COMBO_PATH || v.path===HEALTH_MULT_PATH || v.path===ACH_RELOCK_PATH || v.path===AMULET_RELOCK_PATH) ? '' : '<span class="tag">new — will be added</span>') +
+      '<div class="sub">'+((v.path===COMBO_PATH || v.path===VIP_COMBO_PATH || v.path===EVENT_COMBO_PATH || v.path===ACH_RELOCK_PATH || v.path===AMULET_RELOCK_PATH) ? '' : '<span class="tag">new — will be added</span>') +
       '<span class="fdesc"><b>'+esc(info.name)+'</b> — '+esc(info.desc)+(vl?' · <i>'+vl+'</i>':'')+'</span></div></div>' +
       (isVipTier?tiersHTML:'') +
-      '<div class="ctl">'+ctl+'</div><div class="hint">'+(v.path===COMBO_PATH ? 'Saves all three fields together on Save.' : v.path===VIP_COMBO_PATH ? 'Saves all four fields together on Save.' : v.path===EVENT_COMBO_PATH ? 'Saves state + activated_at_seconds together on Save.' : v.path===HEALTH_COMBO_PATH ? 'Adds millions × 1,000,000 ÷ your Health multiplier to the Enemy health modifier on Save.' : v.path===HEALTH_MULT_PATH ? 'Editor-only: not written to the save. The Health field uses this multiplier.' : v.path===ACH_RELOCK_PATH ? 'On Save, flips the activation flags to false; keeps is_earned and progress.' : v.path===AMULET_RELOCK_PATH ? 'On Save, deletes the node key entirely. Souls/XP are not refunded.' : 'Not in this save — type a value, it will be added on Save.')+'</div></div>';
+      '<div class="ctl">'+ctl+'</div><div class="hint">'+(v.path===COMBO_PATH ? 'Saves all three fields together on Save.' : v.path===VIP_COMBO_PATH ? 'Saves all four fields together on Save.' : v.path===EVENT_COMBO_PATH ? 'Saves state + activated_at_seconds together on Save.' : v.path===ACH_RELOCK_PATH ? 'On Save, flips the activation flags to false; keeps is_earned and progress.' : v.path===AMULET_RELOCK_PATH ? 'On Save, deletes the node key entirely. Souls/XP are not refunded.' : 'Not in this save — type a value, it will be added on Save.')+'</div></div>';
   }
   document.addEventListener('input', ev=>{
     if (st.locked) { ev.preventDefault(); return; }
@@ -1803,7 +1773,6 @@ const VIP_TIERS = [
         out=appendToContainer(b, arrOff, elem);
         continue;
       }
-      if(p===HEALTH_MULT_PATH){ continue; } // editor-only setting, never written to the save
       if(p===ACH_RELOCK_PATH){
         const idx = parseInt(text, 10);
         if(isFinite(idx)){
@@ -1817,16 +1786,6 @@ const VIP_TIERS = [
       if(p===AMULET_RELOCK_PATH){
         const key = String(text).trim();
         if(key) out = deleteMapKey(out, 'amulet/upgrade_levels', key);
-        continue;
-      }
-      if(p===HEALTH_COMBO_PATH){
-        const millions = parseFloat(text)||0;
-        if(millions!==0){
-          const typed = parseFloat(virtual.get(HEALTH_MULT_PATH));
-          const mult = (isFinite(typed) && typed>0) ? typed : estimateHealthMultiplier();
-          const cur = leafValue(out, 'player/stats/0/modifiers/0/value');
-          if(typeof cur==='number') out = replaceLeaf(out, 'player/stats/0/modifiers/0/value', encVal('float', String(cur + millions*1000000/mult)));
-        }
         continue;
       }
       const vf=VIRTUAL_FIELDS.find(v=>v.path===p); if(!vf) continue;
