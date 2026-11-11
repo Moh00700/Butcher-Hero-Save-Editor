@@ -95,6 +95,8 @@ details.tools > summary { cursor: pointer; padding: 10px 14px; font-weight: 500;
 .toolsbody label { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
 
 .grp { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.grp.empty > summary { opacity: .45; }
+.empty-note { color: var(--muted); font-size: 13px; padding: 10px 14px; }
 .grp + .grp { margin-top: 8px; }
 .grp > summary {
   display: flex; gap: 10px; align-items: baseline; padding: 11px 14px; cursor: pointer; list-style: none;
@@ -187,10 +189,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 <div class="wrap">
   <header>
     <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v47</small></h1>
-        <div class="panel" id="top-stats" aria-label="Account summary" style="display:none;text-align:center;margin:12px auto 0;max-width:880px;padding:10px 14px">
-      <div><b>App Version:</b> <span id="top-appversion">Unknown</span></div>
-    </div>
-    <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
+        <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
     <details class="panel tools" id="find-save">
       <summary>Where to find game_data.bin — Android &amp; iOS</summary>
       <div class="toolsbody">
@@ -204,7 +203,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 
   <section class="panel filebar" id="filebar" aria-label="Save file">
     <div class="fileinfo">
-      <div class="fname" id="fname">game_data.bin</div>
+      <div class="fname" id="fname">No file loaded</div>
       <div class="fmeta" id="fmeta"></div>
     </div>
     <input type="file" id="file-input" hidden>
@@ -212,8 +211,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
   </section>
 
   <p id="locknote">Locked - preview only. Upload your game_data.bin above to unlock editing. All fields below are grayed out until then.</p>
-  <div class="panel note" id="exnote" hidden>This is <b>example data</b> so you can try the editor. Open your own file with the button above, or drop it anywhere on this page.</div>
-  <div class="panel after" id="after" hidden></div>
+    <div class="panel after" id="after" hidden></div>
 
   <section class="toolbar" aria-label="Find fields">
     <input class="search" id="q" type="search" placeholder="Search fields or values, e.g. gems, knife, 1234, true" autocomplete="off" spellcheck="false" aria-label="Search fields">
@@ -532,7 +530,7 @@ const USER_TAB_KEEP = new Set([
   'user/crystal_offer_purchased',
   'user/chaotic_soul_offer_purchased',
 ]);
-const GROUP_TITLES = { blacksmith: 'Blacksmith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Gems and Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers', events: 'Crystal Event' };
+const GROUP_TITLES = { player: 'Player Stats', blacksmith: 'Blacksmith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Gems and Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers', events: 'Crystal Event' };
 function groupTitleFor(path){
   if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Blacksmith Sharpening';
   if (path === 'currency/balances/blacksmith.coins') return 'Blacksmith Sharpening';
@@ -839,108 +837,8 @@ function mpEncode(v) {
   return out;
 }
 
-function buildSample(nowSec) {
-  const dayStart = Math.floor(nowSec / 86400) * 86400;
-  const data = {
-    player: {
-      gems: new F64(2450.5),
-      deaths_count: 12,
-      seen_blacksmith_sharpening_tutorial: true,
-      player_in_dungeon: false,
-      items: [
-        { key: 'knife', level: 6, copies: 5424, evolved: true },
-        { key: 'minisaw', level: 4, copies: 2227, evolved: true },
-        { key: 'pike', level: 6, copies: 5376, evolved: true },
-        { key: 'fork', level: 4, copies: 2149, evolved: true },
-        { key: 'pick', level: 3, copies: 593, evolved: true },
-        { key: 'mailbox', level: 4, copies: 2197, evolved: true },
-        { key: 'paddle', level: 6, copies: 5006, evolved: true },
-        { key: 'hammer', level: 3, copies: 427, evolved: true },
-        { key: 'katana', level: 3, copies: 256, evolved: true },
-        { key: 'doubleaxe', level: 2, copies: 291, evolved: true },
-        { key: 'coolpike', level: 2, copies: 598, evolved: true },
-        { key: 'iron_block', level: 6, copies: 410, evolved: true },
-        { key: 'oak_round', level: 6, copies: 1277, evolved: true },
-        { key: 'wooden_horns', level: 6, copies: 923, evolved: true },
-        { key: 'scarlet_edge', level: 4, copies: 910, evolved: true },
-        { key: 'dragon_spikes', level: 4, copies: 709, evolved: true },
-        { key: 'mace', level: 2, copies: 489, evolved: true },
-        { key: 'slime_spawn', level: 6, copies: 424, evolved: true },
-        { key: 'chainsawpike', level: 2, copies: 146, evolved: true },
-        { key: 'abyss_maw', level: 6, copies: 559, evolved: true },
-        { key: 'iron_studs', level: 4, copies: 60, evolved: true },
-        { key: 'spiked_dome', level: 3, copies: 1085, evolved: true },
-        { key: 'steel_guard', level: 3, copies: 1011, evolved: true },
-        { key: 'stone_bind', level: 6, copies: 451, evolved: true },
-        { key: 'golden_spikes', level: 2, copies: 100, evolved: true },
-        { key: 'stone_disk', level: 3, copies: 1065, evolved: true },
-        { key: 'coolHammer', level: 2, copies: 124, evolved: true },
-        { key: 'eagle_crest', level: 2, copies: 256, evolved: true },
-        { key: 'bronze_crest', level: 2, copies: 284, evolved: true },
-        { key: 'demon_horns', level: 2, copies: 258, evolved: true },
-        { key: 'crimson_fang', level: 2, copies: 359, evolved: true },
-        { key: 'chainsaw', level: 2, copies: 86, evolved: true },
-        { key: 'ember_core', level: 2, copies: 163, evolved: true },
-        { key: 'cutting_charm', level: 2, copies: 6, evolved: false },
-        { key: 'vampiric_charm', level: 2, copies: 6, evolved: false },
-        { key: 'flare_shell', level: 1, copies: 2, evolved: false },
-        { key: 'flare_wing', level: 1, copies: 2, evolved: false },
-        { key: 'sunwheel_crown', level: 1, copies: 143, evolved: false },
-        { key: 'sunwheel_deflector', level: 1, copies: 179, evolved: false },
-        { key: 'graveeye_visor', level: 1, copies: 143, evolved: true },
-        { key: 'graveeye_aegis', level: 1, copies: 184, evolved: true },
-      ],
-    },
-    currency: { balances: {
-      'soul.common': new F64(542259),
-      'soul.large': new F64(796228),
-      'soul.huge': new F64(6829),
-      'soul.great': new F64(499517),
-      'soul.elite': new F64(2115),
-      'soul.divine': new F64(4970),
-      'soul.chaotic': new F64(32),
-      'crystal.magic_dust': new F64(6281),
-      'crystal.geodes': new F64(0),
-      'crystal.enchantment_stones': new F64(1),
-      'boss_tower.tickets': new F64(8),
-      'empty_amulet': new F64(0),
-      'quest.dynamite': new F64(0),
-      'quest.helmet': new F64(0),
-      'quest.pickaxe': new F64(0),
-      'quest.mine_cart': new F64(0),
-      'quest.gas_mask': new F64(0),
-    } },
-    vip: { daily_chest_cooldown_timestamp: dayStart + 86400 },
-    boss_tower: { last_tickets_restore_timestamp: dayStart - 86400 * 2, tickets: 3 },
-    player_statistics: { total_kills: 1234 },
-    spawners: {
-      spawners_v3: {
-        'tree_1 (1)_cab298': [dayStart - 3600, 0, 2, dayStart + 86400, 1, 20400, 5],
-        'tree_1 (2)_77d1e0': [dayStart - 7200, 4, 0, 0, 1, 20400, 4],
-        'ice_2_ff12a0': [dayStart - 5400, 0, 1, dayStart + 86400, 0, 20400, 3],
-      },
-    },
-  };
-  const dataBytes = mpEncode(data);
-  const salt = -1234567890;
-  const hashBytes = makeHash(dataBytes, salt);
-  const head = mpEncode({ version: '1.0.3', salt, time: nowSec });
-  // top-level map has 5 keys: rebuild with the data and hash in place
-  const pieces = [Uint8Array.of(0x85)];
-  const add = u => pieces.push(u);
-  add(mpEncode('version')); add(mpEncode('1.0.3'));
-  add(mpEncode('salt')); add(mpEncode(salt));
-  add(mpEncode('time')); add(mpEncode(nowSec));
-  add(mpEncode('data')); add(dataBytes);
-  add(mpEncode('hash')); add(Uint8Array.of(0xd9, 0x2f)); add(hashBytes);
-  let n = 0; pieces.forEach(p => n += p.length);
-  const out = new Uint8Array(n); let o = 0;
-  pieces.forEach(p => { out.set(p, o); o += p.length; });
-  return out;
-}
-
 if (typeof module !== 'undefined') {
-  module.exports = { parts, listFields, groupTitleFor, verify, resign, buildEdit, applyEdits, buildSample, md5, makeHash, isTimerField,
+  module.exports = { parts, listFields, groupTitleFor, verify, resign, buildEdit, applyEdits, md5, makeHash, isTimerField,
     unitOf, humanTime, encInt, rdint, mpEncode, F64 };
 }
 
@@ -952,7 +850,7 @@ if (typeof module !== 'undefined') {
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const nowSec = () => Date.now() / 1000;
   const PAGE = 150;
-  const st = { name: '', sample: false, locked: true, bytes: null, fields: [], edits: new Map(), errs: new Map(), q: '', mode: 'all', groups: new Map(), timers: new Set(), virtual: new Map() };
+  const st = { name: '', locked: true, bytes: null, fields: [], edits: new Map(), errs: new Map(), q: '', mode: 'all', groups: new Map(), timers: new Set(), virtual: new Map() };
 
   /* ---- autosave: keep edits + virtuals across a refresh (same file only) ---- */
   const AUTOSAVE_KEY = 'butcher-hero-editor-autosave-v1';
@@ -1102,19 +1000,9 @@ if (typeof module !== 'undefined') {
       return found ? m : 2.55;
     }catch(e){ return 2.55; }
   }
-  function updateTopStats(){
-    const panel = document.getElementById('top-stats');
-    if (panel) panel.style.display = st.sample ? 'none' : 'block';
-    // The page starts on the EXAMPLE save. Never present example values as yours:
-    // until a real game_data.bin loads, App Version stays Unknown.
-    const verEl = document.getElementById('top-appversion');
-    if(!verEl) return;
-    if (st.sample) { verEl.textContent = 'Unknown'; return; }
-    const ver = rawTopValue('user/app_version');
-    verEl.textContent = (ver===null||ver===undefined||ver==='') ? 'Unknown' : String(ver);
-  }
+  
 
-  function loadBytes(b, name, sample) {
+  function loadBytes(b, name) {
     let d, valid, fields;
     try {
       d = parts(b).d;
@@ -1125,19 +1013,18 @@ if (typeof module !== 'undefined') {
       return false;
     }
     if (!fields.length) { toast('No editable values found in that file.', 8000); return false; }
-    st.bytes = b; st.name = name; st.sample = sample; st.locked = sample; st.fields = fields;
+    st.bytes = b; st.name = name; st.locked = false; st.fields = fields;
     document.body.classList.toggle('locked', st.locked);
     st.edits.clear(); st.errs.clear();
     st.timers = new Set(); fields.forEach((f, i) => { if (isTimerField(f)) st.timers.add(i); });
     st.q = ''; st.mode = 'all'; $('#q').value = '';
     document.querySelectorAll('.fchip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.mode === 'all')));
-    $('#fname').textContent = sample ? 'Example save' : name;
+    $('#fname').textContent = name;
+    const appVer = (function(){ const v = rawTopValue('user/app_version'); return (v===null||v===undefined||v==='') ? 'Unknown' : String(v); })();
     $('#fmeta').innerHTML = '<span>' + fmtBytes(b.length) + '</span>' +
       (valid ? '<span class="chip ok">hash valid</span>' : '<span class="chip warn">hash invalid, fixed on save</span>') +
-      (sample ? '<span class="chip ex">example</span>' : '');
-    $('#exnote').hidden = !sample;
+      '<span class="chip">App Version: ' + esc(appVer) + '</span>';
     st.virtual.clear();
-    updateTopStats();
     $('#after').hidden = true;
     try{ restoreAutosave(b, name); }catch(e){}
     renderList(); updateBar();
@@ -1147,7 +1034,7 @@ if (typeof module !== 'undefined') {
   async function openFile(file) {
     if (!file) return;
     const buf = await file.arrayBuffer();
-    loadBytes(new Uint8Array(buf), file.name, false);
+    loadBytes(new Uint8Array(buf), file.name);
   }
 
   /* ---- editing state ---- */
@@ -1426,7 +1313,7 @@ if (typeof module !== 'undefined') {
     if (left > 0) box.insertAdjacentHTML('beforeend', '<button class="more" type="button" data-act="more">Show ' + Math.min(PAGE, left) + ' more (' + left + ' hidden)</button>');
   }
 
-  const GROUP_TITLES = { blacksmith: 'Blacksmith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Gems and Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers', events: 'Crystal Event' };
+  const GROUP_TITLES = { player: 'Player Stats', blacksmith: 'Blacksmith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Gems and Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers', events: 'Crystal Event' };
   function groupTitleFor(path){
     if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Blacksmith Sharpening';
     if (path === 'currency/balances/blacksmith.coins') return 'Blacksmith Sharpening';
@@ -1439,7 +1326,14 @@ if (typeof module !== 'undefined') {
     const g = path.includes('/') ? path.slice(0, path.indexOf('/')) : '(top level)';
     return GROUP_TITLES[g] || g;
   }
+  // Fixed tabs, shown in this order. Before a file is uploaded they render empty and grayed out.
+  const FIXED_TABS = ['Player Stats','Gems and Souls','Vip Privileges','Crystal Event','Crystal System','Boss Tower','Blacksmith Sharpening','Level Pass','Passes and Offers'];
   function renderList() {
+    if (!st.bytes) {
+      // No file yet: show the fixed tabs, empty and grayed out.
+      $('#list').innerHTML = FIXED_TABS.map((k, i) => '<details class="grp empty" data-g="' + esc(k) + '"' + (i === 0 ? ' open' : '') + '><summary>' + esc(k) + '<small>0</small></summary><div class="rows"><div class="empty-note">Upload your game_data.bin to see fields.</div></div></details>').join('');
+      return;
+    }
     const vis = visibleIdx();
     st.groups = new Map();
     vis.forEach(i => {
@@ -1449,8 +1343,8 @@ if (typeof module !== 'undefined') {
       if (!st.groups.has(k)) st.groups.set(k, []);
       st.groups.get(k).push(i);
     });
-    // Tab order: Vip Privileges, Souls, Blacksmith Sharpening, Crystal System, Level Pass, Boss Tower, then the rest
-    { const TAB_ORDER = ['Gems and Souls','Vip Privileges','Blacksmith Sharpening','Crystal System','Crystal Event','Passes and Offers','Level Pass','Boss Tower']; const ordered = new Map(); TAB_ORDER.forEach(k => { if (st.groups.has(k)) ordered.set(k, st.groups.get(k)); }); st.groups.forEach((v, k) => { if (!ordered.has(k)) ordered.set(k, v); }); st.groups = ordered; }
+    // Fixed tabs only, in this order. Groups not in the list are hidden (their fields stay in the save).
+    { const ordered = new Map(); FIXED_TABS.forEach(k => { if (st.groups.has(k)) ordered.set(k, st.groups.get(k)); }); st.groups = ordered; }
     // Spawners tab hidden - the Respawn tool still works off st.fields.
     st.groups.delete('spawners');
     // Achievements + Amulet (Soul Tree) tabs hidden - relock helpers live in these tabs.
@@ -1507,12 +1401,11 @@ if (typeof module !== 'undefined') {
   }
 
   function updateBar() {
-    try{ updateTopStats(); }catch(e){}
     const n = st.edits.size + st.virtual.size, e = st.errs.size, s = $('#state');
     s.classList.toggle('err', e > 0);
     s.textContent = st.locked ? 'Locked - upload your game_data.bin to unlock editing' : (!n ? 'No changes yet' : n + (n === 1 ? ' change' : ' changes') + (e ? ', ' + e + (e === 1 ? ' needs fixing' : ' need fixing') : ''));
     $('#save-btn').disabled = !n || st.locked; $('#reset-all').disabled = !n || st.locked;
-    $('#save-btn').textContent = 'Save ' + (st.sample ? 'example' : 'game_data.bin');
+    $('#save-btn').textContent = 'Save game_data.bin';
   }
 
   /* ---- events ---- */
@@ -1615,7 +1508,7 @@ if (typeof module !== 'undefined') {
     catch (e) { toast('Could not build the file: ' + (e.message || e), 8000); return; }
 
     if (st.virtual.has(HEALTH_COMBO_PATH) || st.virtual.has(ACH_RELOCK_PATH) || st.virtual.has(AMULET_RELOCK_PATH)) { st.virtual.delete(HEALTH_COMBO_PATH); st.virtual.delete(ACH_RELOCK_PATH); st.virtual.delete(AMULET_RELOCK_PATH); try{ autosaveSoon(); }catch(e){} renderList(); updateBar(); }
-    const base = st.sample ? 'example_save.bin' : 'game_data.bin';
+    const base = 'game_data.bin';
     const steps = '<p><b>Next:</b> close the game completely, back up your original <code>game_data.bin</code>, then replace it with this file. The name must be exactly <code>game_data.bin</code>.</p>';
     if (window.claude && typeof window.claude.use === 'function') {
       let dl = null;
@@ -1623,7 +1516,7 @@ if (typeof module !== 'undefined') {
       if (!dl) { toast('Saving files is not available in this view. Open the page in a normal browser tab.', 8000); return; }
       try {
         await dl.save({ filename: base + '.txt', data: out });
-        afterNote('<p><b>Saved as ' + esc(base) + '.txt.</b> Claude pages cannot save .bin files directly, so remove the <code>.txt</code> ending after it downloads. The hash is valid.</p>' + (st.sample ? '' : steps));
+        afterNote('<p><b>Saved as ' + esc(base) + '.txt.</b> Claude pages cannot save .bin files directly, so remove the <code>.txt</code> ending after it downloads. The hash is valid.</p>' + steps);
       } catch (e) {
         if (e && e.code === 'declined') toast('Save cancelled');
         else toast('Could not save: ' + ((e && e.message) || e), 8000);
@@ -1631,7 +1524,7 @@ if (typeof module !== 'undefined') {
       return;
     }
     download(out, base);
-    afterNote('<p><b>Saved ' + esc(base) + '</b> with a valid hash (' + fmtBytes(out.length) + ').</p>' + (st.sample ? '' : steps));
+    afterNote('<p><b>Saved ' + esc(base) + '</b> with a valid hash (' + fmtBytes(out.length) + ').</p>' + steps);
   });
 
 
@@ -1946,11 +1839,9 @@ const VIP_TIERS = [
     return out;
   }
 
-  /* ---- start with the example so the page is never empty ---- */
-
-  /* ---- start with the example so the page is never empty ---- */
-
-  loadBytes(buildSample(Math.floor(nowSec())), 'example_save.bin', true);
+  /* ---- start empty: fixed tabs, grayed out, until a real game_data.bin is uploaded ---- */
+  renderList();
+  updateBar();
 })();
 </script>
 </body>
