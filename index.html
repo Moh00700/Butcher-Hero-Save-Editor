@@ -164,7 +164,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
 .path { display:flex; align-items:center; gap:6px; }
-.field-icon { width:32px; height:32px; flex:0 0 32px; display:inline-flex; align-items:center; justify-content:center; font-size:16px; line-height:1; border-radius:4px; background:var(--field); border:1px solid var(--line); }
+.field-icon { width:32px; height:32px; flex:0 0 32px; display:inline-flex; align-items:center; justify-content:center; font-size:16px; line-height:1; border-radius:4px; background:transparent; border:none; }
 .field-icon img { width:32px; height:32px; object-fit:contain; }
 .row.vip-row{ grid-template-columns:minmax(0,1fr); }
 .vip-tiers{ display:flex; flex-direction:column; gap:6px; margin-top:2px; width:100%; }
@@ -177,9 +177,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 .vip-tier-txt i{ font-size:11px; color:var(--muted); font-style:normal; }
 /* Game-art icons: one shared transparent-chip rule replaces the per-icon copies.
    The dead hard-coded gems-green rule is gone (it was overridden by the transparent rule below it). */
-.field-icon.gems, .field-icon.vip, .field-icon.amulet, .field-icon.weapon, .field-icon.accessory,
-.field-icon.soul_common, .field-icon.soul_large, .field-icon.soul_huge, .field-icon.soul_great, .field-icon.soul_elite, .field-icon.soul_divine, .field-icon.soul_chaotic,
-.field-icon.magic_dust, .field-icon.geodes, .field-icon.enchant, .field-icon.tickets, .field-icon.sharpening, .field-icon.blacksmith_coins { background:transparent; border:none; }
+/* All .field-icon chips are transparent via the base rule above - no per-icon background overrides needed. */
 /* Large 44px icons: currency, bosses, passes, crystal upgrades, level-pass ticket */
 .field-icon.geodes, .field-icon.tickets, .field-icon.magic_dust, .field-icon.enchant, .field-icon.vip, .field-icon.sharpening,
 .field-icon.boss_lava_crab, .field-icon.boss_berserker, .field-icon.boss_hydra, .field-icon.boss_lich, .field-icon.boss_vampire_king, .field-icon.boss_vikings,
@@ -201,14 +199,9 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 
 <div class="wrap">
   <header>
-    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">Editor v47</small></h1>
-  <p class="ver-note">You are using Editor v47.</p>
-    <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Editor v47</div>
-    <div class="panel" id="top-stats" aria-label="Account summary" style="display:none;grid-template-columns:1fr 1fr;gap:6px 24px;margin:12px auto 0;max-width:880px;padding:10px 14px">
-      <div style="white-space:nowrap"><b>Installed:</b> <span id="top-install">Unknown</span></div>
-      <div style="white-space:nowrap"><b>App Version:</b> <span id="top-appversion">Unknown</span></div>
-      <div style="white-space:nowrap"><b>Total Kills:</b> <span id="top-kills">Unknown</span></div>
-      <div style="white-space:nowrap"><b>Deaths:</b> <span id="top-deaths">Unknown</span></div>
+    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v47</small></h1>
+        <div class="panel" id="top-stats" aria-label="Account summary" style="display:none;text-align:center;margin:12px auto 0;max-width:880px;padding:10px 14px">
+      <div><b>App Version:</b> <span id="top-appversion">Unknown</span></div>
     </div>
     <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
     <details class="panel tools" id="find-save">
@@ -1124,32 +1117,14 @@ if (typeof module !== 'undefined') {
   }
   function updateTopStats(){
     const panel = document.getElementById('top-stats');
-    if (panel) panel.style.display = st.sample ? 'none' : 'grid';
-    // The page starts on the EXAMPLE save (total_kills: 1234 is baked into it).
-    // Never present example values as yours: until a real game_data.bin loads,
-    // every summary field stays Unknown.
-    if (st.sample) {
-      for (const id of ['top-install', 'top-kills', 'top-appversion', 'top-deaths']) {
-        const el = document.getElementById(id);
-        if (el) el.textContent = 'Unknown';
-      }
-      return;
-    }
-    const ins = rawTopValue('user/install_time');
-    const kills = rawTopValue('player_statistics/total_kills');
-    const ver = rawTopValue('user/app_version');
+    if (panel) panel.style.display = st.sample ? 'none' : 'block';
+    // The page starts on the EXAMPLE save. Never present example values as yours:
+    // until a real game_data.bin loads, App Version stays Unknown.
     const verEl = document.getElementById('top-appversion');
-    if(verEl) verEl.textContent = (ver===null||ver===undefined||ver==='') ? 'Unknown' : String(ver);
-    const killsEl = document.getElementById('top-kills');
-    if(killsEl) killsEl.textContent = (kills===null||kills===undefined) ? 'Unknown' : Number(kills).toLocaleString();
-    const deaths = rawTopValue('player/deaths_count');
-    const deathsEl = document.getElementById('top-deaths');
-    if(deathsEl) deathsEl.textContent = (deaths===null||deaths===undefined) ? 'Unknown' : Number(deaths).toLocaleString();
-    const insEl = document.getElementById('top-install');
-    if(insEl){
-      if(ins===null||ins===undefined || Number(ins)<=0) insEl.textContent='Unknown';
-      else { let sec=Number(ins); if(sec>1e17) sec=(sec-621355968000000000)/1e7; else if(sec>1e11) sec=sec/1000; const d=new Date(sec*1000); insEl.textContent = isNaN(d) ? 'Unknown' : d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-    }
+    if(!verEl) return;
+    if (st.sample) { verEl.textContent = 'Unknown'; return; }
+    const ver = rawTopValue('user/app_version');
+    verEl.textContent = (ver===null||ver===undefined||ver==='') ? 'Unknown' : String(ver);
   }
 
   function loadBytes(b, name, sample) {
@@ -1491,6 +1466,10 @@ if (typeof module !== 'undefined') {
     { const TAB_ORDER = ['Gems and Souls','Vip Privileges','Blacksmith Sharpening','Crystal System','Crystal Event','Passes and Offers','Level Pass','Boss Tower']; const ordered = new Map(); TAB_ORDER.forEach(k => { if (st.groups.has(k)) ordered.set(k, st.groups.get(k)); }); st.groups.forEach((v, k) => { if (!ordered.has(k)) ordered.set(k, v); }); st.groups = ordered; }
     // Spawners tab hidden - the Respawn tool still works off st.fields.
     st.groups.delete('spawners');
+    // Achievements + Amulet (Soul Tree) tabs hidden - relock helpers live in these tabs.
+    // Their fields stay in the save untouched, same as every other hidden field/tab.
+    st.groups.delete('achievements');
+    st.groups.delete('amulet');
     // VIP combo first in its tab
     const vipGroup = st.groups.get('Vip Privileges');
     if (vipGroup) { const j = vipGroup.findIndex(x => x === 'v:' + VIP_COMBO_PATH); if (j > 0) { vipGroup.splice(j, 1); vipGroup.unshift('v:' + VIP_COMBO_PATH); } }
