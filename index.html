@@ -88,7 +88,6 @@ button { cursor: pointer; }
   background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; font-size: 13px; min-height: 30px;
 }
 .fchip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.count { margin-left: auto; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 details.tools > summary { cursor: pointer; padding: 10px 14px; font-weight: 500; }
 .toolsbody { padding: 0 14px 14px; display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
 .toolsbody p { flex-basis: 100%; margin: 0; color: var(--muted); font-size: 13px; }
@@ -175,23 +174,11 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 .vip-tier-txt{ display:flex; flex-direction:column; gap:1px; min-width:0; }
 .vip-tier-txt span{ font-size:12px; color:var(--muted); }
 .vip-tier-txt i{ font-size:11px; color:var(--muted); font-style:normal; }
-/* Game-art icons: one shared transparent-chip rule replaces the per-icon copies.
-   The dead hard-coded gems-green rule is gone (it was overridden by the transparent rule below it). */
-/* All .field-icon chips are transparent via the base rule above - no per-icon background overrides needed. */
-/* Large 44px icons: currency, bosses, passes, crystal upgrades, level-pass ticket */
-.field-icon.geodes, .field-icon.tickets, .field-icon.magic_dust, .field-icon.enchant, .field-icon.vip, .field-icon.sharpening,
-.field-icon.boss_lava_crab, .field-icon.boss_berserker, .field-icon.boss_hydra, .field-icon.boss_lich, .field-icon.boss_vampire_king, .field-icon.boss_vikings,
-.field-icon.no_ads, .field-icon.soul_pass, .field-icon.crystal_pass, .field-icon.chaotic_pass,
-.field-icon.crystal_blacksmithing, .field-icon.crystal_max_geodes, .field-icon.crystal_geode_timer, .field-icon.crystal_enchant_efficiency, .field-icon.crystal_enchant_stones_upg, .field-icon.crystal_quality, .field-icon.crystal_sell_bonus, .field-icon.crystal_enchantment, .field-icon.crystal_slot2,
-.field-icon.level_pass_ticket { width:44px; height:44px; flex:0 0 44px; }
-.field-icon.geodes img, .field-icon.tickets img, .field-icon.magic_dust img, .field-icon.enchant img, .field-icon.vip img, .field-icon.sharpening img,
-.field-icon.boss_lava_crab img, .field-icon.boss_berserker img, .field-icon.boss_hydra img, .field-icon.boss_lich img, .field-icon.boss_vampire_king img, .field-icon.boss_vikings img,
-.field-icon.no_ads img, .field-icon.soul_pass img, .field-icon.crystal_pass img, .field-icon.chaotic_pass img,
-.field-icon.crystal_blacksmithing img, .field-icon.crystal_max_geodes img, .field-icon.crystal_geode_timer img, .field-icon.crystal_enchant_efficiency img, .field-icon.crystal_enchant_stones_upg img, .field-icon.crystal_quality img, .field-icon.crystal_sell_bonus img, .field-icon.crystal_enchantment img, .field-icon.crystal_slot2 img,
-.field-icon.level_pass_ticket img { width:44px; height:44px; object-fit:contain; background:transparent; }
-/* Wide 88x44 level-pass tier icons */
-.field-icon.level_pass_tier_1, .field-icon.level_pass_tier_2, .field-icon.level_pass_tier_3, .field-icon.level_pass_tier_4, .field-icon.level_pass_tier_5 { width:88px; height:44px; flex:0 0 88px; }
-.field-icon.level_pass_tier_1 img, .field-icon.level_pass_tier_2 img, .field-icon.level_pass_tier_3 img, .field-icon.level_pass_tier_4 img, .field-icon.level_pass_tier_5 img { width:88px; height:44px; object-fit:contain; background:transparent; }
+/* Icon sizes: every field icon is 32x32 (soul icon size) via the base .field-icon rule.
+   The old per-icon 44px rules are gone - the base rule covers them.
+   Only the wide level-pass tier banners differ. */
+.field-icon.level_pass_tier_1, .field-icon.level_pass_tier_2, .field-icon.level_pass_tier_3, .field-icon.level_pass_tier_4, .field-icon.level_pass_tier_5 { width:64px; height:32px; flex:0 0 64px; }
+.field-icon.level_pass_tier_1 img, .field-icon.level_pass_tier_2 img, .field-icon.level_pass_tier_3 img, .field-icon.level_pass_tier_4 img, .field-icon.level_pass_tier_5 img { width:64px; height:32px; object-fit:contain; background:transparent; }
 </style>
 
 
@@ -235,7 +222,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
       <button class="fchip" type="button" data-mode="changed" aria-pressed="false">Changed</button>
       <button class="fchip" type="button" data-mode="timers" aria-pressed="false">Timers</button>
       <button class="fchip" type="button" data-mode="switches" aria-pressed="false">On / off</button>
-      <span class="count" id="count"></span>
+      
     </div>
   </section>
 
@@ -1495,7 +1482,7 @@ if (typeof module !== 'undefined') {
     const passGroup = st.groups.get('Passes and Offers');
     if (passGroup) { const order = ['user/no_ads_purchased','user/soul_offer_purchased','user/crystal_offer_purchased','user/chaotic_soul_offer_purchased']; const head = order.map(p => passGroup.find(x => typeof x === 'number' && st.fields[x].path === p)).filter(x => x !== undefined); const rest = passGroup.filter(x => !head.includes(x)); passGroup.length = 0; passGroup.push(...head, ...rest); }
     const list = $('#list');
-    $('#count').textContent = vis.length.toLocaleString() + ' of ' + (st.fields.length + missingVirtuals().length).toLocaleString() + ' shown';
+    
     if (!vis.length) {
       list.innerHTML = '<div class="panel empty">' + (st.mode === 'changed' ? 'Nothing changed yet.' : 'No fields match.') + '</div>';
       return;
