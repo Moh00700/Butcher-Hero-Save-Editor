@@ -95,7 +95,6 @@ details.tools > summary { cursor: pointer; padding: 10px 14px; font-weight: 500;
 .toolsbody label { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
 
 .grp { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
-.grp.empty > summary { opacity: .45; }
 .empty-note { color: var(--muted); font-size: 13px; padding: 10px 14px; }
 .grp + .grp { margin-top: 8px; }
 .grp > summary {
@@ -1326,12 +1325,12 @@ if (typeof module !== 'undefined') {
     const g = path.includes('/') ? path.slice(0, path.indexOf('/')) : '(top level)';
     return GROUP_TITLES[g] || g;
   }
-  // Fixed tabs, shown in this order. Before a file is uploaded they render empty and grayed out.
+  // Fixed tabs, shown in this order. Before a file is uploaded they render empty, styled exactly like loaded tabs.
   const FIXED_TABS = ['Player Stats','Gems and Souls','Vip Privileges','Crystal Event','Crystal System','Boss Tower','Blacksmith Sharpening','Level Pass','Passes and Offers'];
   function renderList() {
     if (!st.bytes) {
-      // No file yet: show the fixed tabs, empty and grayed out.
-      $('#list').innerHTML = FIXED_TABS.map((k, i) => '<details class="grp empty" data-g="' + esc(k) + '"' + (i === 0 ? ' open' : '') + '><summary>' + esc(k) + '<small>0</small></summary><div class="rows"><div class="empty-note">Upload your game_data.bin to see fields.</div></div></details>').join('');
+      // No file yet: show the fixed tabs, empty, styled exactly like loaded tabs.
+      $('#list').innerHTML = FIXED_TABS.map((k) => '<details class="grp" data-g="' + esc(k) + '"><summary>' + esc(k) + '<small>0</small></summary><div class="rows"><div class="empty-note">Upload your game_data.bin to see fields.</div></div></details>').join('');
       return;
     }
     const vis = visibleIdx();
@@ -1839,7 +1838,7 @@ const VIP_TIERS = [
     return out;
   }
 
-  /* ---- start empty: fixed tabs, grayed out, until a real game_data.bin is uploaded ---- */
+  /* ---- start empty: fixed tabs, styled like loaded tabs, until a real game_data.bin is uploaded ---- */
   renderList();
   updateBar();
 })();
