@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor — v45</title>
+<title>Butcher Hero Save Editor — v46</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -253,8 +253,8 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 <style>header{text-align:center}header h1{text-align:center;margin:0 auto}header .lead{margin:6px auto 0;text-align:center}header h1 span{color:var(--accent)}</style>
 <div class="wrap">
   <header>
-    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">Editor v45</small></h1>
-  <p class="ver-note">You are using Editor v45.</p>
+    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">Editor v46</small></h1>
+  <p class="ver-note">You are using Editor v46.</p>
     <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Build 2026-11-08 · Crystal Event State Zero Rule v32</div>
     <div class="panel" id="top-stats" aria-label="Account summary" style="display:flex;gap:16px;flex-wrap:nowrap;justify-content:space-between;align-items:center;margin:12px auto 0;max-width:880px;overflow-x:auto">
       <div style="white-space:nowrap"><b>Installed:</b> <span id="top-install">Unknown</span></div>
@@ -1105,6 +1105,47 @@ if (typeof module !== 'undefined') {
       return rdscalar(bytes, off);
     }catch(e){ return null; }
   }
+  function deleteMapKey(bytes, mapPath, key){
+    // Remove one key from a MessagePack map and decrement its entry count.
+    // Setting a Soul Tree node level to 0 did not re-lock it in-game, so remove the key entirely: a never-bought node has no key.
+    try{
+      let off = parts(bytes).d;
+      const segs = mapPath.split('/');
+      for(const s of segs){
+        const kids = children(bytes, off);
+        const hit = kids.find(([label])=>label===s);
+        if(!hit) return bytes;
+        off = hit[1];
+      }
+      const first = bytes[off];
+      let hdrLen, count, countPos = -1;
+      if(first >= 0x80 && first <= 0x8f){ hdrLen = 1; count = first - 0x80; }
+      else if(first === 0xde){ hdrLen = 3; count = (bytes[off+1] << 8) | bytes[off+2]; countPos = off + 1; }
+      else if(first === 0xdf){ hdrLen = 5; count = ((bytes[off+1] << 24) | (bytes[off+2] << 16) | (bytes[off+3] << 8) | bytes[off+4]) >>> 0; countPos = off + 1; }
+      else return bytes;
+      let p = off + hdrLen;
+      for(let i = 0; i < count; i++){
+        const kEnd = vspan(bytes, p)[0];
+        const vEnd = vspan(bytes, kEnd)[0];
+        let keyStr = null;
+        try{ if(vspan(bytes, p)[1] === 'str') keyStr = rdstr(bytes, p)[0]; }catch(e){}
+        if(keyStr === key){
+          const out = new Uint8Array(bytes.length - (vEnd - p));
+          out.set(bytes.subarray(0, p), 0);
+          out.set(bytes.subarray(vEnd), p);
+          if(countPos >= 0){
+            if(first === 0xde){ out[countPos] = ((count - 1) >> 8) & 0xff; out[countPos + 1] = (count - 1) & 0xff; }
+            else { out[countPos] = ((count - 1) >>> 24) & 0xff; out[countPos + 1] = ((count - 1) >>> 16) & 0xff; out[countPos + 2] = ((count - 1) >>> 8) & 0xff; out[countPos + 3] = (count - 1) & 0xff; }
+          } else {
+            out[off] = 0x80 | (count - 1);
+          }
+          return out;
+        }
+        p = vEnd;
+      }
+    }catch(e){}
+    return bytes;
+  }
   function estimateHealthMultiplier(){
     // Best-effort multiplier from the parts the save actually stores.
     // Missing: the Achievements factor (game static tables, not in the save), so this is slightly low.
@@ -1684,8 +1725,8 @@ if (typeof module !== 'undefined') {
     { path:'crystals/upgrade_levels/crystal_slot2_unlock', kind:'int', cat:'Crystals & VIP', name:'Second Crystal Slot', desc:'Unlocks the second crystal slot. 0 = locked, 1 = unlocked. Max 1.', def:'0' },
     { path:'__combo__/player/add_health_millions', kind:'float', cat:'Player', name:'Health', desc:'Add Health, in millions of total HP. Type 10 to add about 10M total HP. On Save, adds millions × 1,000,000 ÷ your Health multiplier (the field below) to player/stats/0/modifiers/0/value (the Enemy health modifier).', def:'0' },
     { path:'__combo__/player/health_multiplier', kind:'float', cat:'Player', name:'Health multiplier', desc:'The Percent number from your Health popup (e.g. 2.55). The Health field uses this instead of a fixed 2.55. Editor-only: never written to the save, kept between sessions. Leave it empty to use the auto-estimate from your save (Secret Chest + Crystal Event + Soul Tree nodes; Achievements not included, so the estimate is slightly low).', def:'' },
-    { path:'__combo__/achievements/relock', kind:'int', cat:'Achievements', name:'Relock achievement', desc:'Type an achievement number (e.g. 4) to lock it again: on Save, its progress goes to 0 and is_earned, is_activated, is_reward_granted, is_bonus_shown, is_toast_shown and is_seen all go to false. Back up your save first. The game may re-earn it on load if its progress is recomputed from your total stats — if so, the relock will not stick.', def:'' },
-    { path:'__combo__/amulet/relock_node', kind:'str', cat:'Amulet', name:'Relock Soul Tree node', desc:'Type a Soul Tree node key (e.g. graph_health_flat_1_15) to set its level back to 0 on Save. Souls and amulet XP spent on it are NOT refunded. To test one node: relock it, check the Health popup, then buy it again in-game.', def:'' },
+    { path:'__combo__/achievements/relock', kind:'int', cat:'Achievements', name:'Relock achievement', desc:'Type an achievement number (e.g. 4) to lock it again: on Save, is_activated, is_reward_granted, is_bonus_shown, is_toast_shown and is_seen go to false. is_earned and progress are KEPT — this matches the real before-state (earned but not activated), so you can activate it again in-game. Back up your save first.', def:'' },
+    { path:'__combo__/amulet/relock_node', kind:'str', cat:'Amulet', name:'Relock Soul Tree node', desc:'Type a Soul Tree node key (e.g. graph_health_flat_1_15) to remove it entirely on Save, as if never bought. Setting the level to 0 did not re-lock it, so the key is deleted instead. Souls and amulet XP spent on it are NOT refunded. To test one node: relock it, check the Health popup, then buy it again in-game.', def:'' },
     ];
   function virtualDisplayPath(v){ if (v.path.startsWith('__combo__/')) return v.path.slice(10); return v.path.startsWith('__slots__/') ? v.path.slice(10) : v.path; }
   function virtualGroup(v){ return groupTitleFor(virtualDisplayPath(v)); }
@@ -1772,7 +1813,7 @@ const VIP_TIERS = [
       '<div class="sub">'+((v.path===COMBO_PATH || v.path===VIP_COMBO_PATH || v.path===EVENT_COMBO_PATH || v.path===HEALTH_COMBO_PATH || v.path===HEALTH_MULT_PATH || v.path===ACH_RELOCK_PATH || v.path===AMULET_RELOCK_PATH) ? '' : '<span class="tag">new — will be added</span>') +
       '<span class="fdesc"><b>'+esc(info.name)+'</b> — '+esc(info.desc)+(vl?' · <i>'+vl+'</i>':'')+'</span></div></div>' +
       (isVipTier?tiersHTML:'') +
-      '<div class="ctl">'+ctl+'</div><div class="hint">'+(v.path===COMBO_PATH ? 'Saves all three fields together on Save.' : v.path===VIP_COMBO_PATH ? 'Saves all four fields together on Save.' : v.path===EVENT_COMBO_PATH ? 'Saves state + activated_at_seconds together on Save.' : v.path===HEALTH_COMBO_PATH ? 'Adds millions × 1,000,000 ÷ your Health multiplier to the Enemy health modifier on Save.' : v.path===HEALTH_MULT_PATH ? 'Editor-only: not written to the save. The Health field uses this multiplier.' : v.path===ACH_RELOCK_PATH ? 'On Save, locks the achievement again: progress 0, all flags false.' : v.path===AMULET_RELOCK_PATH ? 'On Save, sets the node level to 0. Souls/XP are not refunded.' : 'Not in this save — type a value, it will be added on Save.')+'</div></div>';
+      '<div class="ctl">'+ctl+'</div><div class="hint">'+(v.path===COMBO_PATH ? 'Saves all three fields together on Save.' : v.path===VIP_COMBO_PATH ? 'Saves all four fields together on Save.' : v.path===EVENT_COMBO_PATH ? 'Saves state + activated_at_seconds together on Save.' : v.path===HEALTH_COMBO_PATH ? 'Adds millions × 1,000,000 ÷ your Health multiplier to the Enemy health modifier on Save.' : v.path===HEALTH_MULT_PATH ? 'Editor-only: not written to the save. The Health field uses this multiplier.' : v.path===ACH_RELOCK_PATH ? 'On Save, flips the activation flags to false; keeps is_earned and progress.' : v.path===AMULET_RELOCK_PATH ? 'On Save, deletes the node key entirely. Souls/XP are not refunded.' : 'Not in this save — type a value, it will be added on Save.')+'</div></div>';
   }
   document.addEventListener('input', ev=>{
     if (st.locked) { ev.preventDefault(); return; }
@@ -1944,19 +1985,15 @@ const VIP_TIERS = [
         const idx = parseInt(text, 10);
         if(isFinite(idx)){
           const base = 'achievements/achievements/' + idx + '/';
-          const pf = st.fields.find(x => x.path === base + 'progress');
-          if(pf) out = replaceLeaf(out, base + 'progress', encVal(pf.kind, '0'));
-          for(const b of ['is_earned','is_activated','is_reward_granted','is_bonus_shown','is_toast_shown','is_seen']) out = replaceLeaf(out, base + b, Uint8Array.of(0xc2));
+          // Keep is_earned and progress: matches the real before-state (earned but not activated).
+          // Only flip the activation/claim flags so the achievement can be activated again in-game.
+          for(const b of ['is_activated','is_reward_granted','is_bonus_shown','is_toast_shown','is_seen']) out = replaceLeaf(out, base + b, Uint8Array.of(0xc2));
         }
         continue;
       }
       if(p===AMULET_RELOCK_PATH){
         const key = String(text).trim();
-        if(key){
-          const fp = 'amulet/upgrade_levels/' + key;
-          const ff = st.fields.find(x => x.path === fp);
-          if(ff) out = replaceLeaf(out, fp, encVal(ff.kind, '0'));
-        }
+        if(key) out = deleteMapKey(out, 'amulet/upgrade_levels', key);
         continue;
       }
       if(p===HEALTH_COMBO_PATH){
