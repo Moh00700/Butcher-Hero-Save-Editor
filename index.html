@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor — v46</title>
+<title>Butcher Hero Save Editor — v47</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -253,14 +253,14 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 <style>header{text-align:center}header h1{text-align:center;margin:0 auto}header .lead{margin:6px auto 0;text-align:center}header h1 span{color:var(--accent)}</style>
 <div class="wrap">
   <header>
-    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">Editor v46</small></h1>
-  <p class="ver-note">You are using Editor v46.</p>
-    <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Build 2026-11-08 · Crystal Event State Zero Rule v32</div>
-    <div class="panel" id="top-stats" aria-label="Account summary" style="display:flex;gap:16px;flex-wrap:nowrap;justify-content:space-between;align-items:center;margin:12px auto 0;max-width:880px;overflow-x:auto">
+    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">Editor v47</small></h1>
+  <p class="ver-note">You are using Editor v47.</p>
+    <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2px">Editor v47</div>
+    <div class="panel" id="top-stats" aria-label="Account summary" style="display:none;grid-template-columns:1fr 1fr;gap:6px 24px;margin:12px auto 0;max-width:880px;padding:10px 14px">
       <div style="white-space:nowrap"><b>Installed:</b> <span id="top-install">Unknown</span></div>
+      <div style="white-space:nowrap"><b>App Version:</b> <span id="top-appversion">Unknown</span></div>
       <div style="white-space:nowrap"><b>Total Kills:</b> <span id="top-kills">Unknown</span></div>
       <div style="white-space:nowrap"><b>Deaths:</b> <span id="top-deaths">Unknown</span></div>
-      <div style="white-space:nowrap"><b>App Version:</b> <span id="top-appversion">Unknown</span></div>
     </div>
     <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
     <details class="panel tools" id="find-save">
@@ -301,11 +301,10 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
   <details class="panel tools" id="tools">
     <summary>Respawn trees and other spawners</summary>
     <div class="toolsbody">
-      <p>Sets the respawn timer of depleted spawners so they are ready again. Leave the filter empty for all of them.</p>
+      <p>Refills charges, rewinds the last-spawn timer and sets the respawn timer so matched spawners are ready again. Leave the filter empty for all of them.</p>
       <input class="search" id="sp-filter" type="text" placeholder="Filter by name, e.g. tree, ice" autocomplete="off" spellcheck="false" aria-label="Spawner name filter">
       <button class="btn small" type="button" id="sp-now">Ready now</button>
       <button class="btn small" type="button" id="sp-10">Ready in 10 min</button>
-      <label for="sp-all"><input type="checkbox" id="sp-all"> Include spawners with no timer running</label>
     </div>
   </details>
 
@@ -487,7 +486,7 @@ function children(b, i) {
 
 /* Categories removed from the editor (their fields are hidden, never listed/searched,
    but are preserved untouched in the save when you hit Save) */
-const REMOVED_GROUPS = new Set(['promo_codes','notifications','rescue_quest','limited_mode','mines','quests','secret_chests','meta_stats','island_mastery','cashback','player_statistics','achievements','daily_procs','mails','shop','amulet','gates']);
+const REMOVED_GROUPS = new Set(['promo_codes','notifications','rescue_quest','limited_mode','mines','quests','secret_chests','meta_stats','island_mastery','cashback','player_statistics','achievements','daily_procs','mails','shop','amulet','gates','baked_rewards']);
 
 /* String fields that are editable: the event schedule stamps. Every other
    string-valued field in the save stays untouched. */
@@ -592,6 +591,9 @@ const HIDDEN_FIELDS = new Set([
   'player/loadout/2',
   'player/items_rework_migrated',
   'player/unstack_cooldown_ts',
+  'player/unlocked_location_number',
+  'player/boss_progress_location_number',
+  'player/deaths_count',
 ]);
 
 /* The user tab keeps only these fields - every other user/* field is hidden.
@@ -602,7 +604,7 @@ const USER_TAB_KEEP = new Set([
   'user/crystal_offer_purchased',
   'user/chaotic_soul_offer_purchased',
 ]);
-const GROUP_TITLES = { blacksmith: 'Blacksmith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers', events: 'Crystal Event' };
+const GROUP_TITLES = { blacksmith: 'Blacksmith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Gems and Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers', events: 'Crystal Event' };
 function groupTitleFor(path){
   if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Blacksmith Sharpening';
   if (path === 'currency/balances/blacksmith.coins') return 'Blacksmith Sharpening';
@@ -611,7 +613,7 @@ function groupTitleFor(path){
   if (path === 'currency/balances/crystal.geodes' || path === 'currency/balances/crystal.enchantment_stones' || path === 'currency/balances/crystal.magic_dust') return 'Crystal System';
   // Tower Tickets live in the Player tab.
   if (path === 'currency/balances/boss_tower.tickets') return 'Boss Tower';
-  if (path === 'currency/balances/vip.points' || path === 'currency/balances/vip_points' || path === 'currency/balances/vip') return 'Gems';
+  if (path === 'player/gems') return 'Gems and Souls';
   const g = path.includes('/') ? path.slice(0, path.indexOf('/')) : '(top level)';
   return GROUP_TITLES[g] || g;
 }
@@ -649,6 +651,8 @@ function listFields(b, root) {
         // skipped - individual crystal entries (0-4) hidden per request
       } else if (HIDDEN_FIELDS.has(pth)) {
         // skipped
+      } else if (pth.startsWith('player/last_position/') || pth.startsWith('player/item_slots/')) {
+        // skipped - hidden per request
       } else if (pth.startsWith('user/') && !USER_TAB_KEEP.has(pth)) {
         // user tab keeps only USER_TAB_KEEP
       } else {
@@ -1171,6 +1175,8 @@ if (typeof module !== 'undefined') {
     }catch(e){ return 2.55; }
   }
   function updateTopStats(){
+    const panel = document.getElementById('top-stats');
+    if (panel) panel.style.display = st.sample ? 'none' : 'grid';
     // The page starts on the EXAMPLE save (total_kills: 1234 is baked into it).
     // Never present example values as yours: until a real game_data.bin loads,
     // every summary field stays Unknown.
@@ -1415,7 +1421,7 @@ if (typeof module !== 'undefined') {
   }
   function iconForPathOriginal(p){ return FIELD_ICONS[p] || null; }
   const SOUL_IMG = { 'crystals/upgrade_levels/crystal_blacksmithing':'crystal_blacksmithing','crystals/upgrade_levels/crystal_max_geodes':'crystal_max_geodes','crystals/upgrade_levels/crystal_geode_timer':'crystal_geode_timer','crystals/upgrade_levels/crystal_enchant_efficiency':'crystal_enchant_efficiency','crystals/upgrade_levels/crystal_enchantment_stones':'crystal_enchant_stones_upg','crystals/upgrade_levels/crystal_crystals_quality':'crystal_quality','crystals/upgrade_levels/crystal_sell_price_bonus':'crystal_sell_bonus','crystals/upgrade_levels/crystal_enchantment':'crystal_enchantment','crystals/upgrade_levels/crystal_slot2_unlock':'crystal_slot2','user/no_ads_purchased':'pass_no_ads','user/soul_offer_purchased':'pass_soul','user/crystal_offer_purchased':'pass_crystal','user/chaotic_soul_offer_purchased':'pass_chaotic','__combo__/vip/privileges':'vip','__combo__/blacksmith/sharpening_unlocked':'sharpening','player/gems':'accessory', 'currency/balances/soul.common':'soul_common','currency/balances/soul.large':'soul_large','currency/balances/soul.huge':'soul_huge','currency/balances/soul.great':'soul_great','currency/balances/soul.elite':'soul_elite','currency/balances/soul.divine':'soul_divine','currency/balances/soul.chaotic':'soul_chaotic','currency/balances/blacksmith.coins':'blacksmith_coins','currency/balances/crystal.geodes':'geodes','currency/balances/boss_tower.tickets':'tickets','boss_tower/bosses/lava_crab/floor':'boss_lava_crab','boss_tower/bosses/berserker/floor':'boss_berserker','boss_tower/bosses/hydra/floor':'boss_hydra','boss_tower/bosses/lich/floor':'boss_lich','boss_tower/bosses/vampire_king/floor':'boss_vampire_king','boss_tower/bosses/vikings/floor':'boss_vikings','ab_tests/tests/level_pass':'level_pass_ticket','level_pass/passes/island_pass_1/purchased':'level_pass_tier_1','level_pass/passes/island_pass_2/purchased':'level_pass_tier_2','level_pass/passes/island_pass_3/purchased':'level_pass_tier_3','level_pass/passes/island_pass_4/purchased':'level_pass_tier_4','level_pass/passes/island_pass_5/purchased':'level_pass_tier_5','__combo__/events/make_ready_now':'event_ready_skull','__combo__/events/red_crystal_golem':'event_red_golem','__combo__/events/blue_crystal_golem':'event_blue_golem','events/extra_duration':'event_extra_time','currency/balances/crystal.magic_dust':'magic_dust','currency/balances/crystal.enchantment_stones':'enchantment_stones', };
-  function iconForPath(p){ if(p==='currency/balances/vip.points') return {emoji:'💎', cls:'gems', label:'Gems'}; const base = FIELD_ICONS[p] || null; if(!base) return null; const imgKey = SOUL_IMG[p]; if(imgKey && window.GAME_ICONS && window.GAME_ICONS[imgKey]) return { ...base, isImg:true, img: window.GAME_ICONS[imgKey] }; return base; }
+  function iconForPath(p){ const base = FIELD_ICONS[p] || null; if(!base) return null; const imgKey = SOUL_IMG[p]; if(imgKey && window.GAME_ICONS && window.GAME_ICONS[imgKey]) return { ...base, isImg:true, img: window.GAME_ICONS[imgKey] }; return base; }
 
   /* ---- rendering ---- */
   function rowHTML(i) {
@@ -1510,7 +1516,7 @@ if (typeof module !== 'undefined') {
     if (left > 0) box.insertAdjacentHTML('beforeend', '<button class="more" type="button" data-act="more">Show ' + Math.min(PAGE, left) + ' more (' + left + ' hidden)</button>');
   }
 
-  const GROUP_TITLES = { blacksmith: 'Blacksmith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers', events: 'Crystal Event' };
+  const GROUP_TITLES = { blacksmith: 'Blacksmith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Gems and Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers', events: 'Crystal Event' };
   function groupTitleFor(path){
     if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Blacksmith Sharpening';
     if (path === 'currency/balances/blacksmith.coins') return 'Blacksmith Sharpening';
@@ -1519,6 +1525,7 @@ if (typeof module !== 'undefined') {
     if (path === 'currency/balances/crystal.geodes' || path === 'currency/balances/crystal.enchantment_stones' || path === 'currency/balances/crystal.magic_dust') return 'Crystal System';
     // Tower Tickets live in the Player tab.
     if (path === 'currency/balances/boss_tower.tickets') return 'Boss Tower';
+    if (path === 'player/gems') return 'Gems and Souls';
     const g = path.includes('/') ? path.slice(0, path.indexOf('/')) : '(top level)';
     return GROUP_TITLES[g] || g;
   }
@@ -1533,7 +1540,9 @@ if (typeof module !== 'undefined') {
       st.groups.get(k).push(i);
     });
     // Tab order: Vip Privileges, Souls, Blacksmith Sharpening, Crystal System, Level Pass, Boss Tower, then the rest
-    { const TAB_ORDER = ['Gems','Vip Privileges','Souls','Blacksmith Sharpening','Crystal System','Crystal Event','Passes and Offers','Level Pass','Boss Tower']; const ordered = new Map(); TAB_ORDER.forEach(k => { if (st.groups.has(k)) ordered.set(k, st.groups.get(k)); }); st.groups.forEach((v, k) => { if (!ordered.has(k)) ordered.set(k, v); }); st.groups = ordered; }
+    { const TAB_ORDER = ['Gems and Souls','Vip Privileges','Blacksmith Sharpening','Crystal System','Crystal Event','Passes and Offers','Level Pass','Boss Tower']; const ordered = new Map(); TAB_ORDER.forEach(k => { if (st.groups.has(k)) ordered.set(k, st.groups.get(k)); }); st.groups.forEach((v, k) => { if (!ordered.has(k)) ordered.set(k, v); }); st.groups = ordered; }
+    // Spawners tab hidden - the Respawn tool still works off st.fields.
+    st.groups.delete('spawners');
     // VIP combo first in its tab
     const vipGroup = st.groups.get('Vip Privileges');
     if (vipGroup) { const j = vipGroup.findIndex(x => x === 'v:' + VIP_COMBO_PATH); if (j > 0) { vipGroup.splice(j, 1); vipGroup.unshift('v:' + VIP_COMBO_PATH); } }
@@ -1631,17 +1640,26 @@ if (typeof module !== 'undefined') {
 
   function respawn(text) {
     if (st.locked) { toast('Locked - upload your game_data.bin first.', 4000); return; }
-    const flt = $('#sp-filter').value.trim().toLowerCase(), all = $('#sp-all').checked, now = nowSec();
+    const flt = $('#sp-filter').value.trim().toLowerCase(), now = nowSec();
     let n = 0;
+    const byPath = new Map(); st.fields.forEach((f, i) => byPath.set(f.path, i));
     st.fields.forEach((f, i) => {
       if (!f.path.startsWith('spawners/spawners_v3/') || !f.path.endsWith('/next_big_spawn_time')) return;
       const name = f.path.split('/')[2];
       if (flt && !name.toLowerCase().includes(flt)) return;
-      if (!all && Number(f.v) <= now) return;
+      const base = f.path.slice(0, -'/next_big_spawn_time'.length);
       setEdit(i, text); n++;
+      // Refill charges to the spawner's known max.
+      const maxI = byPath.get(base + '/known_max_charges');
+      const remI = byPath.get(base + '/remaining_charges');
+      if (maxI !== undefined && remI !== undefined) setEdit(remI, String(st.fields[maxI].v));
+      // Rewind last_spawn_time by one full charge period, so the game sees a charge as regenerated.
+      const perI = byPath.get(base + '/charges_sync_period');
+      const lastI = byPath.get(base + '/last_spawn_time');
+      if (lastI !== undefined) setEdit(lastI, String(now - (perI !== undefined ? Number(st.fields[perI].v) : 0)));
     });
     renderList(); updateBar();
-    toast(n ? n + (n === 1 ? ' spawner' : ' spawners') + ' set to respawn' : 'No depleted spawners matched. Tick the box to include all of them.', 6000);
+    toast(n ? n + (n === 1 ? ' spawner' : ' spawners') + ' refilled + set to respawn' : 'No spawners matched the filter.', 6000);
   }
   $('#sp-now').addEventListener('click', () => respawn('0'));
   $('#sp-10').addEventListener('click', () => respawn('+10m'));
@@ -1713,7 +1731,6 @@ if (typeof module !== 'undefined') {
     { path:'__combo__/events/red_crystal_golem', kind:'float', cat:'Crystal Event', name:'Red Crystal Golem', desc:'One value for both: events/currencies/red_crystal + events/collected_currencies/red_crystal. Both are set to this on Save.', def:'0' },
     { path:'__combo__/events/blue_crystal_golem', kind:'float', cat:'Crystal Event', name:'Blue Crystal Golem', desc:'One value for both: events/currencies/blue_crystal + events/collected_currencies/blue_crystal. Both are set to this on Save.', def:'0' },
     { path:'__combo__/vip/privileges', kind:'tier', cat:'Vip Privileges', name:'VIP Privileges', desc:'Pick one VIP tier (0–10). Sets that tier\u2019s VIP points — spend + the four VIP points fields — on Save.', def:'0' },
-    { path:'player/unlocked_location_number', kind:'int', cat:'Progression & Stats', name:'Unlocked Stage', desc:'Highest stage you have unlocked.', def:'0' },
     { path:'crystals/upgrade_levels/crystal_blacksmithing', kind:'int', cat:'Crystals & VIP', name:'Blacksmithing', desc:'Blacksmith passive — improves crystal crafting. Max 78.', def:'1' },
     { path:'crystals/upgrade_levels/crystal_enchantment', kind:'int', cat:'Crystals & VIP', name:'Enchantment', desc:'Enchantment passive — stronger enchants. Max 45.', def:'1' },
     { path:'crystals/upgrade_levels/crystal_enchant_efficiency', kind:'int', cat:'Crystals & VIP', name:'Enchant Efficiency', desc:'Less cost / more value when enchanting. Max 30.', def:'1' },
