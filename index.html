@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor — v56</title>
+<title>Butcher Hero Save Editor — v57</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -187,7 +187,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 
 <div class="wrap">
   <header>
-    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v56</small></h1>
+    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v57</small></h1>
         <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
     <details class="panel tools" id="find-save">
       <summary>Where to find game_data.bin — Android &amp; iOS</summary>
@@ -1379,7 +1379,7 @@ if (typeof module !== 'undefined') {
       st.groups.get(k).push(i);
     });
     // Fixed tabs only, in this order. Groups not in the list are hidden (their fields stay in the save).
-    { const ordered = new Map(); FIXED_TABS.forEach(k => { if (st.groups.has(k)) ordered.set(k, st.groups.get(k)); }); st.groups = ordered; }
+    { const ordered = new Map(); FIXED_TABS.forEach(k => { if (st.groups.has(k)) ordered.set(k, st.groups.get(k)); else if (!st.q.trim() && st.mode === 'all') ordered.set(k, []); }); st.groups = ordered; }
     // Spawners tab hidden - the Respawn tool still works off st.fields.
     st.groups.delete('spawners');
     // Achievements + Amulet (Soul Tree) tabs hidden - relock helpers live in these tabs.
@@ -1418,7 +1418,7 @@ if (typeof module !== 'undefined') {
     }
     const openAll = !!st.q.trim() || st.mode !== 'all' || st.groups.size <= 3;
     list.innerHTML = Array.from(st.groups, ([k, idx]) =>
-      '<details class="grp" data-g="' + esc(k) + '"' + (openAll ? ' open' : '') + '><summary>' + esc(k) + '<small>' + idx.length + '</small></summary><div class="rows"></div></details>').join('');
+      '<details class="grp" data-g="' + esc(k) + '"' + (openAll ? ' open' : '') + '><summary>' + esc(k) + '<small>' + idx.length + '</small></summary><div class="rows">' + (idx.length ? '' : '<div class="empty-note">' + (k === 'Other Items' ? 'No unclassified items — every item has a known slot.' : 'No fields in this tab.') + '</div>') + '</div></details>').join('');
     list.querySelectorAll('details.grp').forEach(det => { if (det.open) fillGroup(det); });
   }
 
