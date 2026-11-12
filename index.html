@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor — v57</title>
+<title>Butcher Hero Save Editor — v58</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -187,7 +187,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 
 <div class="wrap">
   <header>
-    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v57</small></h1>
+    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v58</small></h1>
         <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
     <details class="panel tools" id="find-save">
       <summary>Where to find game_data.bin — Android &amp; iOS</summary>
@@ -1184,6 +1184,25 @@ if (typeof module !== 'undefined') {
   // labelled by their key field, and key rows themselves are not editable).
   const SLOT_TAB = { Weapon:'Weapons', Helmet:'Helmets', Shield:'Shields', Accessory:'Accessories' };
   function itemSlotForPath(path){ const m = path.match(/^player\/items\/([^\/]+)\//); return m ? ITEM_SLOT[m[1]] : undefined; }
+  // Fields hidden from specific gear tabs. They stay in the save untouched;
+  // they just don't render. accessory_level / accessory_experience stay
+  // visible in Accessories; ability_counters stays visible outside Accessories.
+  function isHiddenGearField(path, tab){
+    const m = path.match(/^player\/items\/[^\/]+\/(.+)$/);
+    if (!m) return false;
+    const rest = m[1];
+    if (tab === 'Accessories') {
+      return rest === 'accessory_cap_notice_level' || rest === 'evolved' ||
+        rest === 'inheritance_upgrades' || rest.startsWith('inheritance_upgrades/') ||
+        rest === 'ability_counters' || rest.startsWith('ability_counters/');
+    }
+    if (tab === 'Weapons' || tab === 'Shields' || tab === 'Helmets') {
+      return rest === 'evolved' || rest === 'accessory_level' || rest === 'accessory_experience' ||
+        rest === 'inheritance_upgrades' || rest.startsWith('inheritance_upgrades/') ||
+        rest === 'accessory_cap_notice_level';
+    }
+    return false;
+  }
   function fieldInfoFor(path){
     if (FIELD_INFO[path]) return FIELD_INFO[path];
     if (path.includes('player/items/') && path.endsWith('/level')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Other Items', name:(sl || 'Other Item') + ' — Level', desc:'Item level. Tkinter max = 50.' }; }
@@ -1314,6 +1333,7 @@ if (typeof module !== 'undefined') {
       if (st.mode === 'changed' && !st.edits.has(i)) continue;
       if (st.mode === 'timers' && !st.timers.has(i)) continue;
       if (st.mode === 'switches' && f.kind !== 'bool' && f.path !== 'ab_tests/tests/level_pass') continue;
+      if (isHiddenGearField(f.path, groupTitleFor(f.path))) continue;
       out.push(i);
     }
     // Missing Tkinter fields, inside their own category group (player / currency / crystals)
