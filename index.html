@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor — v51</title>
+<title>Butcher Hero Save Editor — v53</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -187,7 +187,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 
 <div class="wrap">
   <header>
-    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v51</small></h1>
+    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v53</small></h1>
         <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
     <details class="panel tools" id="find-save">
       <summary>Where to find game_data.bin — Android &amp; iOS</summary>
@@ -531,6 +531,7 @@ const USER_TAB_KEEP = new Set([
 ]);
 const GROUP_TITLES = { player: 'Player Stats', blacksmith: 'Blacksmith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Gems and Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers', events: 'Crystal Event' };
 function groupTitleFor(path){
+  if (path.startsWith('player/items/')) { const sl = itemSlotForPath(path); if (sl && SLOT_TAB[sl]) return SLOT_TAB[sl]; }
   if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Blacksmith Sharpening';
   if (path === 'currency/balances/blacksmith.coins') return 'Blacksmith Sharpening';
   if (path === 'ab_tests/tests/level_pass') return 'Level Pass';
@@ -989,6 +990,9 @@ if (typeof module !== 'undefined') {
     }
     if (!fields.length) { toast('No editable values found in that file.', 8000); return false; }
     st.bytes = b; st.name = name; st.locked = false; st.fields = fields;
+    // Slot of each loaded item, by its player/items[] index — drives the Weapons / Shields / Helmets / Accessories tabs.
+    for (const k in ITEM_SLOT_BY_INDEX) delete ITEM_SLOT_BY_INDEX[k];
+    fields.forEach(f => { const m = f.path.match(/^player\/items\/(\d+)\/key$/); if (m && ITEM_SLOT[f.v]) ITEM_SLOT_BY_INDEX[m[1]] = ITEM_SLOT[f.v]; });
     document.body.classList.toggle('locked', st.locked);
     st.edits.clear(); st.errs.clear();
     st.timers = new Set(); fields.forEach((f, i) => { if (isTimerField(f)) st.timers.add(i); });
@@ -1168,12 +1172,26 @@ if (typeof module !== 'undefined') {
     'crystals/upgrade_levels/crystal_enchantment_stones': { cat:'Crystals & VIP', name:'Enchantment Stones', desc:'Enchantment Stones upgrade level. Max 2.' },
     'crystals/upgrade_levels/crystal_slot2_unlock': { cat:'Crystals & VIP', name:'Second Crystal Slot', desc:'Unlocks the second crystal slot. 0 = locked, 1 = unlocked. Max 1.' },
   };
+  // Item slot by item key (player/items/*/key). The save stores no type field,
+  // so the slot is identified from the key. Keys present in the example save are
+  // verified; the remaining keys are inferred from the game's item names using
+  // the same display-name -> snake_case pattern (e.g. 'Cutting Charm' -> cutting_charm).
+  const ITEM_SLOT = {};
+  ['knife','minisaw','pike','fork','pick','mailbox','paddle','hammer','katana','doubleaxe','coolpike','mace','chainsawpike','chainsaw','coolHammer'].forEach(k=>ITEM_SLOT[k]='Weapon');
+  ['iron_block','wooden_horns','slime_spawn','steel_guard','dragon_spikes','spiked_dome','bronze_crest','demon_horns','golden_spikes','sunwheel_crown','graveeye_visor','flare_shell','runekeeper_face','cogsmith_mask','mushroommancer_cap','prismcore_drillmask'].forEach(k=>ITEM_SLOT[k]='Helmet');
+  ['oak_round','scarlet_edge','stone_bind','abyss_maw','iron_studs','stone_disk','eagle_crest','crimson_fang','ember_core','sunwheel_deflector','graveeye_aegis','flare_wing','runekeeper_bastion','cogsmith_plate','mushroommancer_shield','prismcore_ward'].forEach(k=>ITEM_SLOT[k]='Shield');
+  ['cutting_charm','vampiric_charm','blacksmith_pendant','crushing_charm','crushing_guard_charm','crystal_amulet','crystal_jar','cutting_guard_charm','gem_ring','piercing_charm','piercing_guard_charm','regeneration_charm','soul_essence','star_compass','vitality_charm'].forEach(k=>ITEM_SLOT[k]='Accessory');
+  // Slot (singular) -> tab name, and the slot of each loaded item by its items[] index.
+  // Built at file load from each item's key value (see the load handler).
+  const SLOT_TAB = { Weapon:'Weapons', Helmet:'Helmets', Shield:'Shields', Accessory:'Accessories' };
+  const ITEM_SLOT_BY_INDEX = {};
+  function itemSlotForPath(path){ const m = path.match(/^player\/items\/(\d+)\//); return m ? ITEM_SLOT_BY_INDEX[m[1]] : undefined; }
   function fieldInfoFor(path){
     if (FIELD_INFO[path]) return FIELD_INFO[path];
-    if (path.includes('player/items/') && path.endsWith('/level')) return { cat:'Weapons & Gear', name:'Weapon / Gear — Level', desc:'Item level. Tkinter max = 50.' };
-    if (path.includes('player/items/') && path.endsWith('/copies')) return { cat:'Weapons & Gear', name:'Weapon / Gear — Copies', desc:'Duplicate copies owned. Tkinter max = 9999.' };
-    if (path.includes('player/items/') && path.endsWith('/evolved')) return { cat:'Weapons & Gear', name:'Weapon / Gear — Evolved', desc:'Whether this item has evolved to its next form.' };
-    if (path.includes('player/items/') && path.endsWith('/key')) return { cat:'Weapons & Gear', name:'Weapon / Gear — Key', desc:'Internal item key, e.g. knife, chainsaw, mace.' };
+    if (path.includes('player/items/') && path.endsWith('/level')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Weapons & Gear', name:(sl || 'Weapon / Gear') + ' — Level', desc:'Item level. Tkinter max = 50.' }; }
+    if (path.includes('player/items/') && path.endsWith('/copies')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Weapons & Gear', name:(sl || 'Weapon / Gear') + ' — Copies', desc:'Duplicate copies owned. Tkinter max = 9999.' }; }
+    if (path.includes('player/items/') && path.endsWith('/evolved')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Weapons & Gear', name:(sl || 'Weapon / Gear') + ' — Evolved', desc:'Whether this item has evolved to its next form.' }; }
+    if (path.includes('player/items/') && path.endsWith('/key')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Weapons & Gear', name:(sl || 'Weapon / Gear') + ' — Key', desc:'Internal item key. Slot (Weapon / Helmet / Shield / Accessory) is identified from the key and shown here.' }; }
     if (path.includes('crystals/crystals/') && path.endsWith('/level')) return { cat:'Crystals & VIP', name:'Crystal — Level', desc:'Crystal level. Tkinter max = 100.' };
     if (path.includes('crystals/crystals/') && path.endsWith('/enchant_level')) return { cat:'Crystals & VIP', name:'Crystal — Enchant Tier', desc:'Enchant tier I-IV. Tkinter max = 4.' };
     if (path.includes('crystals/crystals/') && path.endsWith('/base_stat_value')) return { cat:'Crystals & VIP', name:'Crystal — Base Stat', desc:'Base stat. Tkinter max-crystals doubles it.' };
@@ -1213,6 +1231,7 @@ if (typeof module !== 'undefined') {
     const p=f.path;
     if (p === 'ab_tests/tests/level_pass') return cur === 'B' || cur === 'true' ? 'Variant B — Unlock' : 'Variant A';
     if (f.kind==='bool'){ if(p.endsWith('/is_unlocked')) return cur==='true'?'Unlocked':'Locked'; if(p.endsWith('/evolved')) return cur==='true'?'Evolved':'Not evolved'; if(p.endsWith('/purchased')||p.includes('_purchased')) return cur==='true'?'Purchased':'Not purchased'; return cur; }
+    if (p.includes('player/items/') && p.endsWith('/key')) return ITEM_SLOT[cur] || '';
     const n=parseFloat(cur); if(!isFinite(n)) return '';
     if (p==='currency/balances/vip.points'||p==='currency/balances/vip_points'||p==='player/vip_points'||p==='user/in_apps_bought_value_in_rewarded') return n>=8000?'VIP 10':n>=5000?'VIP 9':n>=2500?'VIP 8':n>=1500?'VIP 7':n>=1000?'VIP 6':n>=600?'VIP 5':n>=350?'VIP 4':n>=200?'VIP 3':n>=80?'VIP 2':n>=20?'VIP 1':'VIP 0';
     if (p.includes('/level') && p.includes('player/items/')) return n>=50?'MAX (50)':n+' / 50';
@@ -1344,7 +1363,7 @@ if (typeof module !== 'undefined') {
     return GROUP_TITLES[g] || g;
   }
   // Fixed tabs, shown in this order. Before a file is uploaded they render empty, styled exactly like loaded tabs.
-  const FIXED_TABS = ['Player Stats','Gems and Souls','Vip Privileges','Crystal Event','Crystal System','Boss Tower','Blacksmith Sharpening','Level Pass','Passes and Offers'];
+  const FIXED_TABS = ['Player Stats','Weapons','Shields','Helmets','Accessories','Gems and Souls','Vip Privileges','Crystal Event','Crystal System','Boss Tower','Blacksmith Sharpening','Level Pass','Passes and Offers'];
   function renderList() {
     if (!st.bytes) {
       // No file yet: show the fixed tabs, empty, styled exactly like loaded tabs.
