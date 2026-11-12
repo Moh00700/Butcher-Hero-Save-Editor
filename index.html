@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor — v47</title>
+<title>Butcher Hero Save Editor — v49</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -187,7 +187,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 
 <div class="wrap">
   <header>
-    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v47</small></h1>
+    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v49</small></h1>
         <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
     <details class="panel tools" id="find-save">
       <summary>Where to find game_data.bin — Android &amp; iOS</summary>
@@ -1116,6 +1116,27 @@ if (typeof module !== 'undefined') {
     'player/unlocked_location_number': { cat:'Progression & Stats', name:'Unlocked Stage', desc:'Highest stage you have unlocked.' },
     'player/deaths_count': { cat:'Progression & Stats', name:'Death Counter', desc:'How many times you have died.' },
     'ab_tests/tests/level_pass': { cat:'Level Pass', name:'Unlock Level Pass', desc:'Toggle ON (true) = variant B — the version that unlocks the Level Pass. Toggle OFF (false) = variant A. The game stores it as the letter B or A.' },
+    'player/stats/0/modifiers/0/value': { cat:'Player Stats', name:'Max Health', desc:'Modifier 0 of the Max Health stat.' },
+    'player/stats/2/modifiers/0/value': { cat:'Player Stats', name:'Health Regen', desc:'Modifier 0 of the Health Regen stat.' },
+    'player/stats/1/modifiers/0/value': { cat:'Player Stats', name:'Movement Speed', desc:'Modifier 0 of the Movement Speed stat.' },
+    'player/stats/18/modifiers/0/value': { cat:'Player Stats', name:'Lifesteal', desc:'Modifier 0 of the Lifesteal stat.' },
+    'player/stats/19/modifiers/0/value': { cat:'Player Stats', name:'Evasion', desc:'Modifier 0 of the Evasion stat.' },
+    'player/stats/20/modifiers/0/value': { cat:'Player Stats', name:'Critical Strike Chance', desc:'Modifier 0 of the Critical Strike Chance stat.' },
+    'player/stats/21/modifiers/0/value': { cat:'Player Stats', name:'Critical Strike Damage', desc:'Modifier 0 of the Critical Strike Damage stat.' },
+    'player/stats/28/modifiers/0/value': { cat:'Player Stats', name:'Block Chance', desc:'Modifier 0 of the Block Chance stat.' },
+    'player/stats/29/modifiers/0/value': { cat:'Player Stats', name:'Block Amount', desc:'Modifier 0 of the Block Amount stat.' },
+    'player/stats/12/modifiers/0/value': { cat:'Player Stats', name:'Pierce Damage', desc:'Modifier 0 of the Pierce Damage stat.' },
+    'player/stats/13/modifiers/0/value': { cat:'Player Stats', name:'Pierce Damage %', desc:'Modifier 0 of the Pierce Damage % stat.' },
+    'player/stats/14/modifiers/0/value': { cat:'Player Stats', name:'Cut Damage', desc:'Modifier 0 of the Cut Damage stat.' },
+    'player/stats/15/modifiers/0/value': { cat:'Player Stats', name:'Cut Damage %', desc:'Modifier 0 of the Cut Damage % stat.' },
+    'player/stats/16/modifiers/0/value': { cat:'Player Stats', name:'Smash Damage', desc:'Modifier 0 of the Smash Damage stat.' },
+    'player/stats/17/modifiers/0/value': { cat:'Player Stats', name:'Smash Damage %', desc:'Modifier 0 of the Smash Damage % stat.' },
+    'player/stats/6/modifiers/0/value': { cat:'Player Stats', name:'Pierce Defense', desc:'Modifier 0 of the Pierce Defense stat.' },
+    'player/stats/7/modifiers/0/value': { cat:'Player Stats', name:'Pierce Defense %', desc:'Modifier 0 of the Pierce Defense % stat.' },
+    'player/stats/8/modifiers/0/value': { cat:'Player Stats', name:'Cut Defense', desc:'Modifier 0 of the Cut Defense stat.' },
+    'player/stats/9/modifiers/0/value': { cat:'Player Stats', name:'Cut Defense %', desc:'Modifier 0 of the Cut Defense % stat.' },
+    'player/stats/10/modifiers/0/value': { cat:'Player Stats', name:'Smash Defense', desc:'Modifier 0 of the Smash Defense stat.' },
+    'player/stats/11/modifiers/0/value': { cat:'Player Stats', name:'Smash Defense %', desc:'Modifier 0 of the Smash Defense % stat.' },
     'crystals/upgrade_levels/crystal_blacksmithing': { cat:'Crystals & VIP', name:'Blacksmithing', desc:'Blacksmith passive — improves crystal crafting. Max 78.' },
     'crystals/upgrade_levels/crystal_enchantment': { cat:'Crystals & VIP', name:'Enchantment', desc:'Enchantment passive — stronger enchants. Max 45.' },
     'crystals/upgrade_levels/crystal_enchant_efficiency': { cat:'Crystals & VIP', name:'Enchant Efficiency', desc:'Less cost / more value when enchanting. Max 30.' },
@@ -1337,6 +1358,8 @@ if (typeof module !== 'undefined') {
     if (bsGroup) { const j = bsGroup.findIndex(x => x === 'v:' + COMBO_PATH); if (j > 0) { bsGroup.splice(j, 1); bsGroup.unshift('v:' + COMBO_PATH); } }
     // Crystal Event tab: Make Event Ready Now first, then Red/Blue Golem combos, then the rest
     { const evGroup = st.groups.get('Crystal Event'); if (evGroup) { const disp = x => (typeof x === 'string' ? virtualDisplayPath(VIRTUAL_FIELDS.find(v => v.path === x.slice(2))) : st.fields[x].path); const head = evGroup.filter(x => ['events/make_ready_now','events/extra_duration','events/red_crystal_golem','events/blue_crystal_golem'].includes(disp(x))); head.sort((a,b) => ['events/make_ready_now','events/extra_duration','events/red_crystal_golem','events/blue_crystal_golem'].indexOf(disp(a)) - ['events/make_ready_now','events/extra_duration','events/red_crystal_golem','events/blue_crystal_golem'].indexOf(disp(b))); const rest = evGroup.filter(x => !head.includes(x)); evGroup.length = 0; evGroup.push(...head, ...rest); } }
+    // Player Stats tab: the 22 named stat modifiers first, in the order listed above, then the rest
+    { const plGroup = st.groups.get('Player Stats'); if (plGroup) { const PLAYER_STATS_HEAD = ['player/stats/0/modifiers/0/value','player/stats/2/modifiers/0/value','player/stats/1/modifiers/0/value','player/stats/18/modifiers/0/value','player/stats/19/modifiers/0/value','player/stats/20/modifiers/0/value','player/stats/21/modifiers/0/value','player/stats/28/modifiers/0/value','player/stats/29/modifiers/0/value','player/stats/12/modifiers/0/value','player/stats/13/modifiers/0/value','player/stats/14/modifiers/0/value','player/stats/15/modifiers/0/value','player/stats/16/modifiers/0/value','player/stats/17/modifiers/0/value','player/stats/6/modifiers/0/value','player/stats/7/modifiers/0/value','player/stats/8/modifiers/0/value','player/stats/9/modifiers/0/value','player/stats/10/modifiers/0/value','player/stats/11/modifiers/0/value']; const disp = x => (typeof x === 'string' ? virtualDisplayPath(VIRTUAL_FIELDS.find(v => v.path === x.slice(2))) : st.fields[x].path); const head = plGroup.filter(x => PLAYER_STATS_HEAD.includes(disp(x))); head.sort((a,b) => PLAYER_STATS_HEAD.indexOf(disp(a)) - PLAYER_STATS_HEAD.indexOf(disp(b))); const rest = plGroup.filter(x => !head.includes(x)); plGroup.length = 0; plGroup.push(...head, ...rest); } }
     // currency/balances/ fields first in the Crystal System tab
     const crystalGroup = st.groups.get('Crystal System');
     if (crystalGroup) { const pathOf = x => (typeof x === 'string' ? x.slice(2) : st.fields[x].path); const head = crystalGroup.filter(x => pathOf(x).startsWith('currency/balances/')); const rest = crystalGroup.filter(x => !pathOf(x).startsWith('currency/balances/')); crystalGroup.length = 0; crystalGroup.push(...head, ...rest); }
