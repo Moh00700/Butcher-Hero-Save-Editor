@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor — v53</title>
+<title>Butcher Hero Save Editor — v54</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -187,7 +187,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 
 <div class="wrap">
   <header>
-    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v53</small></h1>
+    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v54</small></h1>
         <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
     <details class="panel tools" id="find-save">
       <summary>Where to find game_data.bin — Android &amp; iOS</summary>
@@ -1351,6 +1351,7 @@ if (typeof module !== 'undefined') {
 
   const GROUP_TITLES = { player: 'Player Stats', blacksmith: 'Blacksmith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Gems and Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers', events: 'Crystal Event' };
   function groupTitleFor(path){
+    if (path.startsWith('player/items/')) { const sl = itemSlotForPath(path); if (sl && SLOT_TAB[sl]) return SLOT_TAB[sl]; }
     if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Blacksmith Sharpening';
     if (path === 'currency/balances/blacksmith.coins') return 'Blacksmith Sharpening';
     if (path === 'ab_tests/tests/level_pass') return 'Level Pass';
