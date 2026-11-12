@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor — v55</title>
+<title>Butcher Hero Save Editor — v56</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -187,7 +187,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 
 <div class="wrap">
   <header>
-    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v55</small></h1>
+    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v56</small></h1>
         <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
     <details class="panel tools" id="find-save">
       <summary>Where to find game_data.bin — Android &amp; iOS</summary>
@@ -531,7 +531,7 @@ const USER_TAB_KEEP = new Set([
 ]);
 const GROUP_TITLES = { player: 'Player Stats', blacksmith: 'Blacksmith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Gems and Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers', events: 'Crystal Event' };
 function groupTitleFor(path){
-  if (path.startsWith('player/items/')) { const sl = itemSlotForPath(path); if (sl && SLOT_TAB[sl]) return SLOT_TAB[sl]; }
+  if (path.startsWith('player/items/')) { const sl = itemSlotForPath(path); return (sl && SLOT_TAB[sl]) ? SLOT_TAB[sl] : 'Other Items'; }
   if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Blacksmith Sharpening';
   if (path === 'currency/balances/blacksmith.coins') return 'Blacksmith Sharpening';
   if (path === 'ab_tests/tests/level_pass') return 'Level Pass';
@@ -1186,10 +1186,10 @@ if (typeof module !== 'undefined') {
   function itemSlotForPath(path){ const m = path.match(/^player\/items\/([^\/]+)\//); return m ? ITEM_SLOT[m[1]] : undefined; }
   function fieldInfoFor(path){
     if (FIELD_INFO[path]) return FIELD_INFO[path];
-    if (path.includes('player/items/') && path.endsWith('/level')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Weapons & Gear', name:(sl || 'Weapon / Gear') + ' — Level', desc:'Item level. Tkinter max = 50.' }; }
-    if (path.includes('player/items/') && path.endsWith('/copies')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Weapons & Gear', name:(sl || 'Weapon / Gear') + ' — Copies', desc:'Duplicate copies owned. Tkinter max = 9999.' }; }
-    if (path.includes('player/items/') && path.endsWith('/evolved')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Weapons & Gear', name:(sl || 'Weapon / Gear') + ' — Evolved', desc:'Whether this item has evolved to its next form.' }; }
-    if (path.includes('player/items/') && path.endsWith('/key')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Weapons & Gear', name:(sl || 'Weapon / Gear') + ' — Key', desc:'Internal item key. Slot (Weapon / Helmet / Shield / Accessory) is identified from the key and shown here.' }; }
+    if (path.includes('player/items/') && path.endsWith('/level')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Other Items', name:(sl || 'Other Item') + ' — Level', desc:'Item level. Tkinter max = 50.' }; }
+    if (path.includes('player/items/') && path.endsWith('/copies')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Other Items', name:(sl || 'Other Item') + ' — Copies', desc:'Duplicate copies owned. Tkinter max = 9999.' }; }
+    if (path.includes('player/items/') && path.endsWith('/evolved')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Other Items', name:(sl || 'Other Item') + ' — Evolved', desc:'Whether this item has evolved to its next form.' }; }
+    if (path.includes('player/items/') && path.endsWith('/key')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Other Items', name:(sl || 'Other Item') + ' — Key', desc:'Internal item key. Slot (Weapon / Helmet / Shield / Accessory) is identified from the key and shown here.' }; }
     if (path.includes('crystals/crystals/') && path.endsWith('/level')) return { cat:'Crystals & VIP', name:'Crystal — Level', desc:'Crystal level. Tkinter max = 100.' };
     if (path.includes('crystals/crystals/') && path.endsWith('/enchant_level')) return { cat:'Crystals & VIP', name:'Crystal — Enchant Tier', desc:'Enchant tier I-IV. Tkinter max = 4.' };
     if (path.includes('crystals/crystals/') && path.endsWith('/base_stat_value')) return { cat:'Crystals & VIP', name:'Crystal — Base Stat', desc:'Base stat. Tkinter max-crystals doubles it.' };
@@ -1349,7 +1349,7 @@ if (typeof module !== 'undefined') {
 
   const GROUP_TITLES = { player: 'Player Stats', blacksmith: 'Blacksmith Sharpening', vip: 'Vip Privileges', crystals: 'Crystal System', currency: 'Gems and Souls', boss_tower: 'Boss Tower', level_pass: 'Level Pass', user: 'Passes and Offers', events: 'Crystal Event' };
   function groupTitleFor(path){
-    if (path.startsWith('player/items/')) { const sl = itemSlotForPath(path); if (sl && SLOT_TAB[sl]) return SLOT_TAB[sl]; }
+    if (path.startsWith('player/items/')) { const sl = itemSlotForPath(path); return (sl && SLOT_TAB[sl]) ? SLOT_TAB[sl] : 'Other Items'; }
     if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Blacksmith Sharpening';
     if (path === 'currency/balances/blacksmith.coins') return 'Blacksmith Sharpening';
     if (path === 'ab_tests/tests/level_pass') return 'Level Pass';
@@ -1362,7 +1362,7 @@ if (typeof module !== 'undefined') {
     return GROUP_TITLES[g] || g;
   }
   // Fixed tabs, shown in this order. Before a file is uploaded they render empty, styled exactly like loaded tabs.
-  const FIXED_TABS = ['Player Stats','Weapons','Shields','Helmets','Accessories','Gems and Souls','Vip Privileges','Crystal Event','Crystal System','Boss Tower','Blacksmith Sharpening','Level Pass','Passes and Offers'];
+  const FIXED_TABS = ['Player Stats','Weapons','Shields','Helmets','Accessories','Other Items','Gems and Souls','Vip Privileges','Crystal Event','Crystal System','Boss Tower','Blacksmith Sharpening','Level Pass','Passes and Offers'];
   function renderList() {
     if (!st.bytes) {
       // No file yet: show the fixed tabs, empty, styled exactly like loaded tabs.
