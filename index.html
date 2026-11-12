@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor — v54</title>
+<title>Butcher Hero Save Editor — v55</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -187,7 +187,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 
 <div class="wrap">
   <header>
-    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v54</small></h1>
+    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v55</small></h1>
         <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
     <details class="panel tools" id="find-save">
       <summary>Where to find game_data.bin — Android &amp; iOS</summary>
@@ -990,9 +990,7 @@ if (typeof module !== 'undefined') {
     }
     if (!fields.length) { toast('No editable values found in that file.', 8000); return false; }
     st.bytes = b; st.name = name; st.locked = false; st.fields = fields;
-    // Slot of each loaded item, by its player/items[] index — drives the Weapons / Shields / Helmets / Accessories tabs.
-    for (const k in ITEM_SLOT_BY_INDEX) delete ITEM_SLOT_BY_INDEX[k];
-    fields.forEach(f => { const m = f.path.match(/^player\/items\/(\d+)\/key$/); if (m && ITEM_SLOT[f.v]) ITEM_SLOT_BY_INDEX[m[1]] = ITEM_SLOT[f.v]; });
+
     document.body.classList.toggle('locked', st.locked);
     st.edits.clear(); st.errs.clear();
     st.timers = new Set(); fields.forEach((f, i) => { if (isTimerField(f)) st.timers.add(i); });
@@ -1181,11 +1179,11 @@ if (typeof module !== 'undefined') {
   ['iron_block','wooden_horns','slime_spawn','steel_guard','dragon_spikes','spiked_dome','bronze_crest','demon_horns','golden_spikes','sunwheel_crown','graveeye_visor','flare_shell','runekeeper_face','cogsmith_mask','mushroommancer_cap','prismcore_drillmask'].forEach(k=>ITEM_SLOT[k]='Helmet');
   ['oak_round','scarlet_edge','stone_bind','abyss_maw','iron_studs','stone_disk','eagle_crest','crimson_fang','ember_core','sunwheel_deflector','graveeye_aegis','flare_wing','runekeeper_bastion','cogsmith_plate','mushroommancer_shield','prismcore_ward'].forEach(k=>ITEM_SLOT[k]='Shield');
   ['cutting_charm','vampiric_charm','blacksmith_pendant','crushing_charm','crushing_guard_charm','crystal_amulet','crystal_jar','cutting_guard_charm','gem_ring','piercing_charm','piercing_guard_charm','regeneration_charm','soul_essence','star_compass','vitality_charm'].forEach(k=>ITEM_SLOT[k]='Accessory');
-  // Slot (singular) -> tab name, and the slot of each loaded item by its items[] index.
-  // Built at file load from each item's key value (see the load handler).
+  // Slot (singular) -> tab name. An item's slot comes straight from its key,
+  // which is the path segment in player/items/<key>/... (array entries are
+  // labelled by their key field, and key rows themselves are not editable).
   const SLOT_TAB = { Weapon:'Weapons', Helmet:'Helmets', Shield:'Shields', Accessory:'Accessories' };
-  const ITEM_SLOT_BY_INDEX = {};
-  function itemSlotForPath(path){ const m = path.match(/^player\/items\/(\d+)\//); return m ? ITEM_SLOT_BY_INDEX[m[1]] : undefined; }
+  function itemSlotForPath(path){ const m = path.match(/^player\/items\/([^\/]+)\//); return m ? ITEM_SLOT[m[1]] : undefined; }
   function fieldInfoFor(path){
     if (FIELD_INFO[path]) return FIELD_INFO[path];
     if (path.includes('player/items/') && path.endsWith('/level')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Weapons & Gear', name:(sl || 'Weapon / Gear') + ' — Level', desc:'Item level. Tkinter max = 50.' }; }
