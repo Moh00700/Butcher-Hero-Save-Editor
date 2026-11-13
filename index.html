@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor — v58</title>
+<title>Butcher Hero Save Editor — v59</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -63,7 +63,8 @@ button { cursor: pointer; }
 .filebar.drag { border-style: dashed; border-color: var(--accent); }
 .fileinfo { flex: 1 1 14rem; min-width: 0; }
 .fname { font-family: var(--mono); font-weight: 500; overflow-wrap: anywhere; }
-.fmeta { color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
+.fmeta { color: var(--muted); font-size: 13px; display: flex; flex-wrap: nowrap; gap: 4px 12px; align-items: center; overflow-x: auto; }
+    .fmeta > span { white-space: nowrap; flex-shrink: 0; }
 .chip { font-family: var(--mono); font-size: 12px; padding: 1px 8px; border: 1px solid currentColor; border-radius: 3px; white-space: nowrap; }
 .chip.ok { color: var(--ok); } .chip.warn { color: var(--warn); } .chip.ex { color: var(--warn); }
 .btn {
@@ -187,7 +188,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 
 <div class="wrap">
   <header>
-    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v58</small></h1>
+    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v59</small></h1>
         <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
     <details class="panel tools" id="find-save">
       <summary>Where to find game_data.bin — Android &amp; iOS</summary>
@@ -1000,7 +1001,7 @@ if (typeof module !== 'undefined') {
     const appVer = (function(){ const v = rawTopValue('user/app_version'); return (v===null||v===undefined||v==='') ? 'Unknown' : String(v); })();
     $('#fmeta').innerHTML = '<span>' + fmtBytes(b.length) + '</span>' +
       (valid ? '<span class="chip ok">hash valid</span>' : '<span class="chip warn">hash invalid, fixed on save</span>') +
-      '<span class="chip">App Version: ' + esc(appVer) + '</span>';
+      '<span class="chip">Game Version: ' + esc(appVer) + '</span>';
         st.virtual.clear();
     $('#after').hidden = true;
     try{ restoreAutosave(b, name); }catch(e){}
