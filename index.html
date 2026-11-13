@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor — v60</title>
+<title>Butcher Hero Save Editor — v62</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -189,7 +189,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 
 <div class="wrap">
   <header>
-    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v60</small></h1>
+    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v62</small></h1>
         <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
     <details class="panel tools" id="find-save">
       <summary>Where to find game_data.bin — Android &amp; iOS</summary>
@@ -1205,10 +1205,21 @@ if (typeof module !== 'undefined') {
     }
     return false;
   }
+  // Display name by item key (player/items/<key>/...). Unknown keys fall back to title-casing the key.
+  const ITEM_NAMES = { knife:'Steel Splitter', minisaw:'Bat Cleaver', pike:'Savage Fang', fork:'Venom Shard', pick:'Phantom Edge', mailbox:'Toxic Hammer', paddle:'Stone Breaker', hammer:'Arcane Maul', katana:'Chaos Reaver', doubleaxe:'Flame Cutter', coolpike:'Ember Fang', iron_block:'Iron Block', oak_round:'Oak Round', wooden_horns:'Wooden Horns', scarlet_edge:'Scarlet Edge', dragon_spikes:'Dragon Spikes', mace:'Titan Hammer', slime_spawn:'Slime Spawn', chainsawpike:'Abyss Talon', abyss_maw:'Abyss Maw', iron_studs:'Iron Studs', spiked_dome:'Spiked Dome', steel_guard:'Steel Guard', stone_bind:'Stone Bind', golden_spikes:'Golden Spikes', stone_disk:'Stone Disk', coolHammer:'Mystic Mallet', eagle_crest:'Eagle Crest', bronze_crest:'Bronze Crest', demon_horns:'Demon Horns', crimson_fang:'Crimson Fang', chainsaw:'Void Ripper', ember_core:'Ember Core', cutting_charm:'Cutting Charm', vampiric_charm:'Vampiric Charm', flare_shell:'Flare Shell', flare_wing:'Flare Wing', sunwheel_crown:'Sunwheel Crown', sunwheel_deflector:'Sunwheel Deflector', graveeye_visor:'Graveeye Visor', graveeye_aegis:'Graveeye Aegis' };
+  function itemKeyForPath(path){ const m = path.match(/^player\/items\/([^\/]+)\//); return m ? m[1] : null; }
+  function itemDisplayName(path){
+    const k = itemKeyForPath(path);
+    if (!k) return 'Item';
+    if (ITEM_NAMES[k]) return ITEM_NAMES[k];
+    return k.replace(/([a-z0-9])([A-Z])/g, '$1 $2').split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  }
   function fieldInfoFor(path){
     if (FIELD_INFO[path]) return FIELD_INFO[path];
-    if (path.includes('player/items/') && path.endsWith('/level')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Other Items', name:(sl || 'Other Item') + ' — Level', desc:'Item level. Tkinter max = 50.' }; }
-    if (path.includes('player/items/') && path.endsWith('/copies')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Other Items', name:(sl || 'Other Item') + ' — Copies', desc:'Duplicate copies owned. Tkinter max = 9999.' }; }
+    if (path.includes('player/items/') && path.endsWith('/level')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Other Items', name: sl ? itemDisplayName(path) + ' - Level' : 'Other Item — Level', desc:'Item level. Tkinter max = 50.' }; }
+    if (path.includes('player/items/') && path.endsWith('/copies')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Other Items', name: sl ? itemDisplayName(path) + ' - Copies' : 'Other Item — Copies', desc:'Duplicate copies owned. Tkinter max = 9999.' }; }
+    if (path.includes('player/items/') && path.endsWith('/accessory_level')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Other Items', name: sl === 'Accessory' ? itemDisplayName(path) + ' - Experience Level' : (sl || 'Other Item') + ' — Experience Level', desc:'Accessory experience level.' }; }
+    if (path.includes('player/items/') && path.endsWith('/accessory_experience')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Other Items', name: sl === 'Accessory' ? itemDisplayName(path) + ' - Experience Level Points' : (sl || 'Other Item') + ' — Experience Level Points', desc:'Accessory experience points.' }; }
     if (path.includes('player/items/') && path.endsWith('/evolved')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Other Items', name:(sl || 'Other Item') + ' — Evolved', desc:'Whether this item has evolved to its next form.' }; }
     if (path.includes('player/items/') && path.endsWith('/key')) { const sl = itemSlotForPath(path); return { cat: SLOT_TAB[sl] || 'Other Items', name:(sl || 'Other Item') + ' — Key', desc:'Internal item key. Slot (Weapon / Helmet / Shield / Accessory) is identified from the key and shown here.' }; }
     if (path.includes('crystals/crystals/') && path.endsWith('/level')) return { cat:'Crystals & VIP', name:'Crystal — Level', desc:'Crystal level. Tkinter max = 100.' };
@@ -1307,7 +1318,7 @@ if (typeof module !== 'undefined') {
     return '<div class="row' + (changed ? ' changed' : '') + (st.errs.has(i) ? ' invalid' : '') + '" id="r' + i + '" data-i="' + i + '">' +
       '<div><div class="path">'+iconHTML+'<span><span class="dim">' + esc(parent) + '</span><b>' + esc(leaf) + '</b></span></div>' +
       '<div class="sub">' +
-      (fieldInfoFor(f.path) ? '<span class="fdesc"><b>' + esc(fieldInfoFor(f.path).name) + '</b> — ' + esc(fieldInfoFor(f.path).desc) + (valueLabelFor(f, cur) ? ' · <i>' + valueLabelHTML(f, cur) + '</i>' : '') + '</span>' : '') +
+      (fieldInfoFor(f.path) ? '<span class="fdesc"><b>' + esc(fieldInfoFor(f.path).name) + '</b>' + (valueLabelFor(f, cur) ? ' · <i>' + valueLabelHTML(f, cur) + '</i>' : '') + '</span>' : '') +
       '</div></div>' +
       '<div class="ctl">' + ctl + '</div><div class="hint' + (h.err ? ' err' : '') + '">' + esc(h.t) + '</div></div>';
   }
@@ -1688,7 +1699,7 @@ const VIP_TIERS = [
     return '<div class="row'+(isSet?' changed':'')+(isVipTier?' vip-row':'')+'" data-vrow="'+esc(v.path)+'">' +
       '<div><div class="path">'+iconHTML+'<span><span class="dim">'+esc(parent)+'</span><b>'+esc(leaf)+'</b></span></div>' +
       '<div class="sub">'+((v.path===COMBO_PATH || v.path===VIP_COMBO_PATH || v.path===EVENT_COMBO_PATH || v.path===ACH_RELOCK_PATH || v.path===AMULET_RELOCK_PATH) ? '' : '<span class="tag">new — will be added</span>') +
-      '<span class="fdesc"><b>'+esc(info.name)+'</b> — '+esc(info.desc)+(vl?' · <i>'+vl+'</i>':'')+'</span></div></div>' +
+      '<span class="fdesc"><b>'+esc(info.name)+'</b>'+(vl?' · <i>'+vl+'</i>':'')+'</span></div></div>' +
       (isVipTier?tiersHTML:'') +
       '<div class="ctl">'+ctl+'</div><div class="hint">'+(v.path===COMBO_PATH ? 'Saves all three fields together on Save.' : v.path===VIP_COMBO_PATH ? 'Saves all four fields together on Save.' : v.path===EVENT_COMBO_PATH ? 'Saves state + activated_at_seconds together on Save.' : v.path===ACH_RELOCK_PATH ? 'On Save, flips the activation flags to false; keeps is_earned and progress.' : v.path===AMULET_RELOCK_PATH ? 'On Save, deletes the node key entirely. Souls/XP are not refunded.' : 'Not in this save — type a value, it will be added on Save.')+'</div></div>';
   }
