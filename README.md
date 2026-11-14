@@ -29,7 +29,3 @@ Edit your Butcher Hero `game_data.bin` save file — right in your browser.
 ## 🔒 Privacy
 
 Everything runs in this page. Your save file is never uploaded anywhere — it is read and edited on your own device. The integrity hash is recalculated for you on save.
-
-## 🔄 Updating this site
-
-This repo is a GitHub Pages site. To update the editor, replace `index.html` in the repo root with the new version (keep `README.md` and `.nojekyll` where they are). Pages redeploys automatically in about a minute.
