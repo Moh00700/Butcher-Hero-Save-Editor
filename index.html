@@ -1191,8 +1191,7 @@ if (typeof module !== 'undefined') {
   // ---- Add-missing-items: one button per gear tab (Weapons / Shields / Helmets / Accessories) ----
   // A button lists exactly which items are missing from THAT tab in the loaded save,
   // and queues them to be appended to player/items on Save. Items already owned are
-  // never touched. Magic Charm is never offered: adding it alone crashes the game
-  // (verified by bisect - every other missing item loads fine, Magic Charm alone tombstones).
+  // never touched.
   const ITEM_ADD_EXCLUDED = new Set(['magic_charm']);
   function presentItemKeys(){
     const out = new Set();
@@ -1227,9 +1226,6 @@ if (typeof module !== 'undefined') {
     } else {
       h += '<span class="add-missing-note">Missing ' + stillMissing.length + (stillMissing.length === 1 ? ' item' : ' items') + ' in this tab: ' + stillMissing.map(k => esc(ITEM_NAMES[k] || k)).join(', ') + '</span> ';
       h += '<button class="btn small primary" type="button" data-add-missing="add" data-tab="' + esc(tab) + '">Add missing ' + esc(tab.toLowerCase()) + '</button>';
-    }
-    if (tab === 'Accessories' && !presentItemKeys().has('magic_charm')){
-      h += '<span class="add-missing-note warn">Magic Charm is not offered \u2014 adding it crashes the game.</span>';
     }
     h += '</div>';
     return h;
