@@ -188,7 +188,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
   .add-missing-note.warn{ color:#ff9d9d; }
 
   /* ---- LIVE VISITOR COUNTER ---- */
-  #liveCount{position:fixed;top:10px;right:10px;z-index:9999;background:rgba(0,0,0,.65);color:#fff;border:1px solid rgba(255,255,255,.25);padding:6px 12px;border-radius:999px;font-size:13px;display:flex;gap:7px;align-items:center;backdrop-filter:blur(4px);font-family:inherit}
+  #liveCount{display:inline-flex;gap:7px;align-items:center;align-self:center;background:rgba(0,0,0,.45);color:#fff;border:1px solid rgba(255,255,255,.25);padding:5px 11px;border-radius:999px;font-size:13px;font-family:inherit}
   #liveCount .dot{width:9px;height:9px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #4ade80;flex:none}
   #liveCount.off .dot{background:#f87171;box-shadow:none}
 </style>
@@ -200,6 +200,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 <div class="wrap">
   <header>
     <h1>Butcher Hero<br><span>Save Editor</span></h1>
+    <div id="liveCount" title="People with this page open right now"><span class="dot"></span>Connecting&hellip;</div>
     <details class="panel tools" id="find-save">
       <summary>Where to find game_data.bin — Android</summary>
       <div class="toolsbody">
@@ -1992,7 +1993,6 @@ const VIP_TIERS = [
 })();
 </script>
 
-  <div id="liveCount" title="People with this page open right now"><span class="dot"></span>Connecting&hellip;</div>
   <!-- LIVE VISITOR COUNTER: needs a free Firebase Realtime Database. See FIREBASE_CONFIG below. -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -2018,7 +2018,7 @@ const VIP_TIERS = [
   messagingSenderId: "466977099491",
   appId: "1:466977099491:web:070669a24f634a0f09ffd6",
   measurementId: "G-VYCC2KV8MB"
-}; 
+};
 // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
   (function(){
     var el = document.getElementById('liveCount');
