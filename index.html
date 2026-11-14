@@ -186,6 +186,11 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
   .add-missing-row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:8px 10px; margin:0 0 8px; background:rgba(255,255,255,.04); border:1px dashed rgba(255,255,255,.25); border-radius:8px; }
   .add-missing-note{ font-size:13px; opacity:.85; }
   .add-missing-note.warn{ color:#ff9d9d; }
+
+  /* ---- LIVE VISITOR COUNTER ---- */
+  #liveCount{position:fixed;top:10px;right:10px;z-index:9999;background:rgba(0,0,0,.65);color:#fff;border:1px solid rgba(255,255,255,.25);padding:6px 12px;border-radius:999px;font-size:13px;display:flex;gap:7px;align-items:center;backdrop-filter:blur(4px);font-family:inherit}
+  #liveCount .dot{width:9px;height:9px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #4ade80;flex:none}
+  #liveCount.off .dot{background:#f87171;box-shadow:none}
 </style>
 
 
@@ -1986,5 +1991,65 @@ const VIP_TIERS = [
   updateBar();
 })();
 </script>
+
+  <div id="liveCount" title="People with this page open right now"><span class="dot"></span>Connecting&hellip;</div>
+  <!-- LIVE VISITOR COUNTER: needs a free Firebase Realtime Database. See FIREBASE_CONFIG below. -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script>
+  /* ============ LIVE VISITOR COUNTER ============
+     SETUP (one time, ~5 minutes, free):
+       1. console.firebase.google.com -> Add project -> turn OFF Google Analytics -> Create.
+       2. Left menu -> Build -> Realtime Database -> Create Database -> Start in test mode -> Enable.
+       3. Realtime Database -> Rules tab -> paste this and Publish:
+          { "rules": { "presence": { ".read": true, ".write": true } } }
+       4. Project settings (gear icon) -> Your apps -> Web app (</>) -> register -> copy firebaseConfig.
+       5. Paste that object into FIREBASE_CONFIG below (replace null), save, re-upload as index.html.
+     HOW IT WORKS: every open tab adds one entry under "presence". When a tab is closed,
+     Firebase removes its entry automatically (onDisconnect), so the count drops within seconds.
+     NOTE: the count is open TABS, not people - one person with 2 tabs open counts as 2.
+  ================================================= */
+  var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyA9Cz7AZUjEy1avghC4o0dfO2xTEpkSgUM",
+  authDomain: "butcher-hero.firebaseapp.com",
+  databaseURL: "https://butcher-hero-default-rtdb.firebaseio.com",
+  projectId: "butcher-hero",
+  storageBucket: "butcher-hero.firebasestorage.app",
+  messagingSenderId: "466977099491",
+  appId: "1:466977099491:web:070669a24f634a0f09ffd6",
+  measurementId: "G-VYCC2KV8MB"
+}; 
+// <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
+  (function(){
+    var el = document.getElementById('liveCount');
+    if (!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey) {
+      el.innerHTML = '<span class="dot"></span>Live counter not set up';
+      el.classList.add('off');
+      el.title = 'Paste your Firebase config into FIREBASE_CONFIG in this file to turn the live counter on.';
+      return;
+    }
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      var db = firebase.database();
+      var room = 'presence/' + location.pathname.replace(/[^A-Za-z0-9]+/g, '_');
+      var ref = db.ref(room);
+      var me = null;
+      db.ref('.info/connected').on('value', function(s){
+        if (s.val() === true && !me) { me = ref.push(true); me.onDisconnect().remove(); }
+        if (s.val() === false) me = null;
+      });
+      ref.on('value', function(s){
+        var n = s.numChildren();
+        el.innerHTML = '<span class="dot"></span>' + n + (n === 1 ? ' person' : ' people') + ' online now';
+        el.classList.remove('off');
+        el.title = 'People with this page open right now (counts open tabs)';
+      });
+      window.addEventListener('beforeunload', function(){ if (me) me.remove(); });
+    } catch (e) {
+      el.innerHTML = '<span class="dot"></span>Live counter offline';
+      el.classList.add('off');
+    }
+  })();
+  </script>
 </body>
 </html>
