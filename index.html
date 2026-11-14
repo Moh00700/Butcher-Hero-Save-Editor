@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor — v64</title>
+<title>Butcher Hero Save Editor</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,15 +42,16 @@ body {
   padding-block: 20px 0;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
+  overflow-x: clip;
 }
 .wrap { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
 h1 {
-  font-family: var(--display); font-weight: 700; font-size: clamp(2rem, 6vw, 2.75rem); line-height: 1;
-  letter-spacing: .02em; text-transform: uppercase; margin: 0; text-wrap: balance;
+  font-family: var(--display); font-weight: 700; font-size: min(calc(100vw / 7.6), 10rem); line-height: 1;
+  letter-spacing: 0; text-transform: uppercase; margin: 0; text-wrap: nowrap; white-space: nowrap; width: 100vw;
 }
 h1 span { color: var(--muted); font-weight: 600; }
-header{text-align:center}
-header h1{text-align:center;margin:0 auto}
+header{text-align:center;display:flex;flex-direction:column;gap:16px}
+header h1{text-align:center;margin-inline:calc(50% - 50vw)}
 header .lead{margin:6px auto 0;text-align:center}
 header h1 span{color:var(--accent)}
 .lead { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
@@ -192,14 +193,12 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 
 <div class="wrap">
   <header>
-    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v63</small></h1>
-        <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
+    <h1>Butcher Hero<br><span>Save Editor</span></h1>
     <details class="panel tools" id="find-save">
-      <summary>Where to find game_data.bin — Android &amp; iOS</summary>
+      <summary>Where to find game_data.bin — Android</summary>
       <div class="toolsbody">
         <p><b>Android:</b> open your file manager and go to <b>Internal storage &gt; Android &gt; data</b>, then look for the <b>Butcher Hero</b> folder (named after the game) &gt; <b>files</b> &gt; <code>game_data.bin</code>. On Android 11 and later that folder is often blocked for normal file managers — if you cannot see it, use a file manager with Shizuku / ADB access, or a PC file transfer.</p>
         <p>If you still cannot see it, the file lives in the game&apos;s private app storage (<code>/data/data/…</code>), which needs root or ADB access to reach.</p>
-        <p><b>iOS (iPhone / iPad):</b> open the <b>Files</b> app &gt; <b>Browse &gt; On My iPhone</b> and look for the <b>Butcher Hero</b> folder &gt; <code>game_data.bin</code>. If it is not there, connect your iPhone to a computer and use <b>Finder (Mac)</b> or <b>iTunes / Apple Devices (Windows)</b> &gt; your iPhone &gt; <b>Files &gt; Butcher Hero</b> to copy it out. If the game syncs to iCloud, check <b>iCloud Drive &gt; Butcher Hero</b> too.</p>
         <p>After editing: close the game completely, <b>back up the original</b> <code>game_data.bin</code>, then put the edited file back in the <b>same place with the exact same name</b>.</p>
       </div>
     </details>
@@ -1448,7 +1447,7 @@ if (typeof module !== 'undefined') {
     return GROUP_TITLES[g] || g;
   }
   // Fixed tabs, shown in this order. Before a file is uploaded they render empty, styled exactly like loaded tabs.
-  const FIXED_TABS = ['Player Stats','Weapons','Shields','Helmets','Accessories','Other Items','Gems and Souls','Vip Privileges','Crystal Event','Crystal System','Boss Tower','Blacksmith Sharpening','Level Pass','Passes and Offers'];
+  const FIXED_TABS = ['Player Stats','Weapons','Shields','Helmets','Accessories','Gems and Souls','Vip Privileges','Crystal Event','Crystal System','Boss Tower','Blacksmith Sharpening','Level Pass','Passes and Offers'];
   function renderList() {
     if (!st.bytes) {
       // No file yet: show the fixed tabs, empty, styled exactly like loaded tabs.
@@ -1504,7 +1503,7 @@ if (typeof module !== 'undefined') {
     }
     const openAll = !!st.q.trim() || st.mode !== 'all' || st.groups.size <= 3;
     list.innerHTML = Array.from(st.groups, ([k, idx]) =>
-      '<details class="grp" data-g="' + esc(k) + '"' + (openAll ? ' open' : '') + '><summary>' + esc(k) + '<small>' + idx.length + '</small></summary><div class="rows">' + missingItemsHTML(k) + (idx.length ? '' : '<div class="empty-note">' + (k === 'Other Items' ? 'No unclassified items — every item has a known slot.' : 'No fields in this tab.') + '</div>') + '</div></details>').join('');
+      '<details class="grp" data-g="' + esc(k) + '"' + (openAll ? ' open' : '') + '><summary>' + esc(k) + '<small>' + idx.length + '</small></summary><div class="rows">' + missingItemsHTML(k) + (idx.length ? '' : '<div class="empty-note">' + 'No fields in this tab.' + '</div>') + '</div></details>').join('');
     list.querySelectorAll('details.grp').forEach(det => { if (det.open) fillGroup(det); });
   }
 
