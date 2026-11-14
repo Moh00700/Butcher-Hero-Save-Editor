@@ -1,4 +1,4 @@
-<title>Butcher Hero Save Editor — v62</title>
+<title>Butcher Hero Save Editor — v64</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -182,6 +182,9 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
    Only the wide level-pass tier banners differ. */
 .field-icon.level_pass_tier_1, .field-icon.level_pass_tier_2, .field-icon.level_pass_tier_3, .field-icon.level_pass_tier_4, .field-icon.level_pass_tier_5 { width:64px; height:32px; flex:0 0 64px; }
 .field-icon.level_pass_tier_1 img, .field-icon.level_pass_tier_2 img, .field-icon.level_pass_tier_3 img, .field-icon.level_pass_tier_4 img, .field-icon.level_pass_tier_5 img { width:64px; height:32px; object-fit:contain; background:transparent; }
+  .add-missing-row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:8px 10px; margin:0 0 8px; background:rgba(255,255,255,.04); border:1px dashed rgba(255,255,255,.25); border-radius:8px; }
+  .add-missing-note{ font-size:13px; opacity:.85; }
+  .add-missing-note.warn{ color:#ff9d9d; }
 </style>
 
 
@@ -189,7 +192,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 
 <div class="wrap">
   <header>
-    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v62</small></h1>
+    <h1>Butcher Hero <span>Save Editor</span> <small class="ver">v63</small></h1>
         <p class="lead">Open your <code>game_data.bin</code>, change any value, and save it back. The integrity hash is recalculated for you. Everything runs in this page and your file is never uploaded.</p>
     <details class="panel tools" id="find-save">
       <summary>Where to find game_data.bin — Android &amp; iOS</summary>
@@ -882,7 +885,7 @@ if (typeof module !== 'undefined') {
         if(i < 0){ skipped++; continue; }
         st.edits.set(i, text); restored++;
       }
-      for(const [path, text] of (snap.virtual || [])){ if(VIRTUAL_FIELDS.some(v => v.path === path)) st.virtual.set(path, text); }
+      for(const [path, text] of (snap.virtual || [])){ if(VIRTUAL_FIELDS.some(v => v.path === path) || path.startsWith('__items__/player/items/')) st.virtual.set(path, text); }
       if(restored) toast('Restored ' + restored + ' unsaved change' + (restored === 1 ? '' : 's') + ' from before the refresh.' + (skipped ? ' ' + skipped + ' skipped (no longer in this file).' : ''), 6000);
     }catch(e){}
   }
@@ -1177,15 +1180,61 @@ if (typeof module !== 'undefined') {
   // verified; the remaining keys are inferred from the game's item names using
   // the same display-name -> snake_case pattern (e.g. 'Cutting Charm' -> cutting_charm).
   const ITEM_SLOT = {};
-  ['knife','minisaw','pike','fork','pick','mailbox','paddle','hammer','katana','doubleaxe','coolpike','mace','chainsawpike','chainsaw','coolHammer'].forEach(k=>ITEM_SLOT[k]='Weapon');
+  ['knife','minisaw','pike','fork','pick','mailbox','paddle','hammer','katana','doubleaxe','coolpike','mace','chainsawpike','chainsaw','coolHammer','mythic_knife','mythic_axe','mythic_hammer'].forEach(k=>ITEM_SLOT[k]='Weapon');
   ['iron_block','wooden_horns','slime_spawn','steel_guard','dragon_spikes','spiked_dome','bronze_crest','demon_horns','golden_spikes','sunwheel_crown','graveeye_visor','flare_shell','runekeeper_face','cogsmith_mask','mushroommancer_cap','prismcore_drillmask'].forEach(k=>ITEM_SLOT[k]='Helmet');
   ['oak_round','scarlet_edge','stone_bind','abyss_maw','iron_studs','stone_disk','eagle_crest','crimson_fang','ember_core','sunwheel_deflector','graveeye_aegis','flare_wing','runekeeper_bastion','cogsmith_plate','mushroommancer_shield','prismcore_ward'].forEach(k=>ITEM_SLOT[k]='Shield');
-  ['cutting_charm','vampiric_charm','blacksmith_pendant','crushing_charm','crushing_guard_charm','crystal_amulet','crystal_jar','cutting_guard_charm','gem_ring','piercing_charm','piercing_guard_charm','regeneration_charm','soul_essence','star_compass','vitality_charm'].forEach(k=>ITEM_SLOT[k]='Accessory');
+  ['cutting_charm','vampiric_charm','blacksmith_pendant','crushing_charm','crushing_guard_charm','crystal_amulet','crystal_jar','cutting_guard_charm','gem_ring','piercing_charm','piercing_guard_charm','regeneration_charm','soul_essence','star_compass','vitality_charm','magic_charm'].forEach(k=>ITEM_SLOT[k]='Accessory');
   // Slot (singular) -> tab name. An item's slot comes straight from its key,
   // which is the path segment in player/items/<key>/... (array entries are
   // labelled by their key field, and key rows themselves are not editable).
   const SLOT_TAB = { Weapon:'Weapons', Helmet:'Helmets', Shield:'Shields', Accessory:'Accessories' };
   function itemSlotForPath(path){ const m = path.match(/^player\/items\/([^\/]+)\//); return m ? ITEM_SLOT[m[1]] : undefined; }
+  // ---- Add-missing-items: one button per gear tab (Weapons / Shields / Helmets / Accessories) ----
+  // A button lists exactly which items are missing from THAT tab in the loaded save,
+  // and queues them to be appended to player/items on Save. Items already owned are
+  // never touched. Magic Charm is never offered: adding it alone crashes the game
+  // (verified by bisect - every other missing item loads fine, Magic Charm alone tombstones).
+  const ITEM_ADD_EXCLUDED = new Set(['magic_charm']);
+  function presentItemKeys(){
+    const out = new Set();
+    try{ for (const f of st.fields){ const m = f.path.match(/^player\/items\/([^\/]+)\//); if (m) out.add(m[1]); } }catch(e){}
+    return out;
+  }
+  function missingItemsForTab(tab){
+    const present = presentItemKeys();
+    const out = [];
+    for (const k of Object.keys(ITEM_SLOT)){
+      if (SLOT_TAB[ITEM_SLOT[k]] !== tab) continue;
+      if (ITEM_ADD_EXCLUDED.has(k)) continue;
+      if (present.has(k)) continue;
+      out.push(k);
+    }
+    return out;
+  }
+  function itemAddPath(key){ return '__items__/player/items/' + key; }
+  function missingItemsHTML(tab){
+    const GEAR_TABS = ['Weapons','Shields','Helmets','Accessories'];
+    if (!GEAR_TABS.includes(tab)) return '';
+    if (st.locked) return '';
+    const missing = missingItemsForTab(tab);
+    const queued = missing.filter(k => st.virtual.has(itemAddPath(k)));
+    const stillMissing = missing.filter(k => !st.virtual.has(itemAddPath(k)));
+    let h = '<div class="add-missing-row" data-add-missing-tab="' + esc(tab) + '">';
+    if (!missing.length){
+      h += '<span class="add-missing-note">All ' + esc(tab.toLowerCase()) + ' collected \u2713</span>';
+    } else if (!stillMissing.length){
+      h += '<span class="add-missing-note">Added ' + queued.length + ' \u2713 \u2014 will add on Save.</span> ';
+      h += '<button class="btn small" type="button" data-add-missing="undo" data-tab="' + esc(tab) + '">Undo</button>';
+    } else {
+      h += '<span class="add-missing-note">Missing ' + stillMissing.length + (stillMissing.length === 1 ? ' item' : ' items') + ' in this tab: ' + stillMissing.map(k => esc(ITEM_NAMES[k] || k)).join(', ') + '</span> ';
+      h += '<button class="btn small primary" type="button" data-add-missing="add" data-tab="' + esc(tab) + '">Add missing ' + esc(tab.toLowerCase()) + '</button>';
+    }
+    if (tab === 'Accessories' && !presentItemKeys().has('magic_charm')){
+      h += '<span class="add-missing-note warn">Magic Charm is not offered \u2014 adding it crashes the game.</span>';
+    }
+    h += '</div>';
+    return h;
+  }
   // Fields hidden from specific gear tabs. They stay in the save untouched;
   // they just don't render. accessory_level / accessory_experience stay
   // visible in Accessories; ability_counters stays visible outside Accessories.
@@ -1205,8 +1254,11 @@ if (typeof module !== 'undefined') {
     }
     return false;
   }
+  // Player Stats tab: only these 21 stat modifiers show. Every other player/* field
+  // that would land in this tab stays in the save untouched, just not shown.
+  const PLAYER_STATS_KEPT = ['player/stats/0/modifiers/0/value','player/stats/2/modifiers/0/value','player/stats/1/modifiers/0/value','player/stats/18/modifiers/0/value','player/stats/19/modifiers/0/value','player/stats/20/modifiers/0/value','player/stats/21/modifiers/0/value','player/stats/28/modifiers/0/value','player/stats/29/modifiers/0/value','player/stats/12/modifiers/0/value','player/stats/13/modifiers/0/value','player/stats/14/modifiers/0/value','player/stats/15/modifiers/0/value','player/stats/16/modifiers/0/value','player/stats/17/modifiers/0/value','player/stats/6/modifiers/0/value','player/stats/7/modifiers/0/value','player/stats/8/modifiers/0/value','player/stats/9/modifiers/0/value','player/stats/10/modifiers/0/value','player/stats/11/modifiers/0/value'];
   // Display name by item key (player/items/<key>/...). Unknown keys fall back to title-casing the key.
-  const ITEM_NAMES = { knife:'Steel Splitter', minisaw:'Bat Cleaver', pike:'Savage Fang', fork:'Venom Shard', pick:'Phantom Edge', mailbox:'Toxic Hammer', paddle:'Stone Breaker', hammer:'Arcane Maul', katana:'Chaos Reaver', doubleaxe:'Flame Cutter', coolpike:'Ember Fang', iron_block:'Iron Block', oak_round:'Oak Round', wooden_horns:'Wooden Horns', scarlet_edge:'Scarlet Edge', dragon_spikes:'Dragon Spikes', mace:'Titan Hammer', slime_spawn:'Slime Spawn', chainsawpike:'Abyss Talon', abyss_maw:'Abyss Maw', iron_studs:'Iron Studs', spiked_dome:'Spiked Dome', steel_guard:'Steel Guard', stone_bind:'Stone Bind', golden_spikes:'Golden Spikes', stone_disk:'Stone Disk', coolHammer:'Mystic Mallet', eagle_crest:'Eagle Crest', bronze_crest:'Bronze Crest', demon_horns:'Demon Horns', crimson_fang:'Crimson Fang', chainsaw:'Void Ripper', ember_core:'Ember Core', cutting_charm:'Cutting Charm', vampiric_charm:'Vampiric Charm', flare_shell:'Flare Shell', flare_wing:'Flare Wing', sunwheel_crown:'Sunwheel Crown', sunwheel_deflector:'Sunwheel Deflector', graveeye_visor:'Graveeye Visor', graveeye_aegis:'Graveeye Aegis' };
+  const ITEM_NAMES = { knife:'Steel Splitter', minisaw:'Bat Cleaver', pike:'Savage Fang', fork:'Venom Shard', pick:'Phantom Edge', mailbox:'Toxic Hammer', paddle:'Stone Breaker', hammer:'Arcane Maul', katana:'Chaos Reaver', doubleaxe:'Flame Cutter', coolpike:'Ember Fang', iron_block:'Iron Block', oak_round:'Oak Round', wooden_horns:'Wooden Horns', scarlet_edge:'Scarlet Edge', dragon_spikes:'Dragon Spikes', mace:'Titan Hammer', slime_spawn:'Slime Spawn', chainsawpike:'Abyss Talon', abyss_maw:'Abyss Maw', iron_studs:'Iron Studs', spiked_dome:'Spiked Dome', steel_guard:'Steel Guard', stone_bind:'Stone Bind', golden_spikes:'Golden Spikes', stone_disk:'Stone Disk', coolHammer:'Mystic Mallet', eagle_crest:'Eagle Crest', bronze_crest:'Bronze Crest', demon_horns:'Demon Horns', crimson_fang:'Crimson Fang', chainsaw:'Void Ripper', ember_core:'Ember Core', cutting_charm:'Cutting Charm', vampiric_charm:'Vampiric Charm', flare_shell:'Flare Shell', flare_wing:'Flare Wing', sunwheel_crown:'Sunwheel Crown', sunwheel_deflector:'Sunwheel Deflector', graveeye_visor:'Graveeye Visor', graveeye_aegis:'Graveeye Aegis', mythic_knife:'Phantom Fang', mythic_axe:"Titan's Fury", mythic_hammer:'Crimson Thunder', blacksmith_pendant:'Blacksmith Pendant', crystal_amulet:'Crystal Amulet', crystal_jar:'Crystal Jar', gem_ring:'Gem Ring', star_compass:'Star Compass', soul_essence:'Soul Essence', magic_charm:'Magic Charm', piercing_charm:'Piercing Charm', regeneration_charm:'Regeneration Charm', vitality_charm:'Vitality Charm', cutting_guard_charm:'Cutting Guard Charm', crushing_guard_charm:'Crushing Guard Charm', piercing_guard_charm:'Piercing Guard Charm', mushroommancer_shield:'Mushroommancer Shield', mushroommancer_cap:'Mushroommancer Cap', cogsmith_mask:'Cogsmith Mask', cogsmith_plate:'Cogsmith Plate', runekeeper_face:'Runekeeper Face', runekeeper_bastion:'Runekeeper Bastion', prismcore_drillmask:'Prismcore Drillmask', prismcore_ward:'Prismcore Ward' };
   function itemKeyForPath(path){ const m = path.match(/^player\/items\/([^\/]+)\//); return m ? m[1] : null; }
   function itemDisplayName(path){
     const k = itemKeyForPath(path);
@@ -1347,6 +1399,7 @@ if (typeof module !== 'undefined') {
       if (st.mode === 'timers' && !st.timers.has(i)) continue;
       if (st.mode === 'switches' && f.kind !== 'bool' && f.path !== 'ab_tests/tests/level_pass') continue;
       if (isHiddenGearField(f.path, groupTitleFor(f.path))) continue;
+      if (groupTitleFor(f.path) === 'Player Stats' && !PLAYER_STATS_KEPT.includes(f.path)) continue;
       out.push(i);
     }
     // Missing Tkinter fields, inside their own category group (player / currency / crystals)
@@ -1431,7 +1484,7 @@ if (typeof module !== 'undefined') {
     // Crystal Event tab: Make Event Ready Now first, then Red/Blue Golem combos, then the rest
     { const evGroup = st.groups.get('Crystal Event'); if (evGroup) { const disp = x => (typeof x === 'string' ? virtualDisplayPath(VIRTUAL_FIELDS.find(v => v.path === x.slice(2))) : st.fields[x].path); const head = evGroup.filter(x => ['events/make_ready_now','events/extra_duration','events/red_crystal_golem','events/blue_crystal_golem'].includes(disp(x))); head.sort((a,b) => ['events/make_ready_now','events/extra_duration','events/red_crystal_golem','events/blue_crystal_golem'].indexOf(disp(a)) - ['events/make_ready_now','events/extra_duration','events/red_crystal_golem','events/blue_crystal_golem'].indexOf(disp(b))); const rest = evGroup.filter(x => !head.includes(x)); evGroup.length = 0; evGroup.push(...head, ...rest); } }
     // Player Stats tab: the 22 named stat modifiers first, in the order listed above, then the rest
-    { const plGroup = st.groups.get('Player Stats'); if (plGroup) { const PLAYER_STATS_HEAD = ['player/stats/0/modifiers/0/value','player/stats/2/modifiers/0/value','player/stats/1/modifiers/0/value','player/stats/18/modifiers/0/value','player/stats/19/modifiers/0/value','player/stats/20/modifiers/0/value','player/stats/21/modifiers/0/value','player/stats/28/modifiers/0/value','player/stats/29/modifiers/0/value','player/stats/12/modifiers/0/value','player/stats/13/modifiers/0/value','player/stats/14/modifiers/0/value','player/stats/15/modifiers/0/value','player/stats/16/modifiers/0/value','player/stats/17/modifiers/0/value','player/stats/6/modifiers/0/value','player/stats/7/modifiers/0/value','player/stats/8/modifiers/0/value','player/stats/9/modifiers/0/value','player/stats/10/modifiers/0/value','player/stats/11/modifiers/0/value']; const disp = x => (typeof x === 'string' ? virtualDisplayPath(VIRTUAL_FIELDS.find(v => v.path === x.slice(2))) : st.fields[x].path); const head = plGroup.filter(x => PLAYER_STATS_HEAD.includes(disp(x))); head.sort((a,b) => PLAYER_STATS_HEAD.indexOf(disp(a)) - PLAYER_STATS_HEAD.indexOf(disp(b))); const rest = plGroup.filter(x => !head.includes(x)); plGroup.length = 0; plGroup.push(...head, ...rest); } }
+    { const plGroup = st.groups.get('Player Stats'); if (plGroup) { const PLAYER_STATS_HEAD = PLAYER_STATS_KEPT; const disp = x => (typeof x === 'string' ? virtualDisplayPath(VIRTUAL_FIELDS.find(v => v.path === x.slice(2))) : st.fields[x].path); const head = plGroup.filter(x => PLAYER_STATS_HEAD.includes(disp(x))); head.sort((a,b) => PLAYER_STATS_HEAD.indexOf(disp(a)) - PLAYER_STATS_HEAD.indexOf(disp(b))); const rest = plGroup.filter(x => !head.includes(x)); plGroup.length = 0; plGroup.push(...head, ...rest); } }
     // currency/balances/ fields first in the Crystal System tab
     const crystalGroup = st.groups.get('Crystal System');
     if (crystalGroup) { const pathOf = x => (typeof x === 'string' ? x.slice(2) : st.fields[x].path); const head = crystalGroup.filter(x => pathOf(x).startsWith('currency/balances/')); const rest = crystalGroup.filter(x => !pathOf(x).startsWith('currency/balances/')); crystalGroup.length = 0; crystalGroup.push(...head, ...rest); }
@@ -1451,7 +1504,7 @@ if (typeof module !== 'undefined') {
     }
     const openAll = !!st.q.trim() || st.mode !== 'all' || st.groups.size <= 3;
     list.innerHTML = Array.from(st.groups, ([k, idx]) =>
-      '<details class="grp" data-g="' + esc(k) + '"' + (openAll ? ' open' : '') + '><summary>' + esc(k) + '<small>' + idx.length + '</small></summary><div class="rows">' + (idx.length ? '' : '<div class="empty-note">' + (k === 'Other Items' ? 'No unclassified items — every item has a known slot.' : 'No fields in this tab.') + '</div>') + '</div></details>').join('');
+      '<details class="grp" data-g="' + esc(k) + '"' + (openAll ? ' open' : '') + '><summary>' + esc(k) + '<small>' + idx.length + '</small></summary><div class="rows">' + missingItemsHTML(k) + (idx.length ? '' : '<div class="empty-note">' + (k === 'Other Items' ? 'No unclassified items — every item has a known slot.' : 'No fields in this tab.') + '</div>') + '</div></details>').join('');
     list.querySelectorAll('details.grp').forEach(det => { if (det.open) fillGroup(det); });
   }
 
@@ -1501,6 +1554,27 @@ if (typeof module !== 'undefined') {
     else if (act === 'undo') { setEdit(i, origText(st.fields[i])); const inp = row.querySelector('.num'); if (inp) inp.value = curText(i); }
     refreshRow(i); updateBar();
     if (st.mode === 'changed' && act === 'undo') renderList();
+  });
+
+  // Add-missing-items buttons: queue (or unqueue) one tab's missing items.
+  list.addEventListener('click', ev => {
+    const btn = ev.target.closest('[data-add-missing]'); if (!btn) return;
+    if (st.locked) { ev.preventDefault(); return; }
+    const tab = btn.dataset.tab;
+    const missing = missingItemsForTab(tab);
+    if (!missing.length) return;
+    if (btn.dataset.addMissing === 'add'){
+      for (const k of missing) st.virtual.set(itemAddPath(k), 'true');
+      toast('Added ' + missing.length + ' missing ' + tab.toLowerCase() + ' \u2014 they will be added on Save.', 6000);
+    } else {
+      for (const k of missing) st.virtual.delete(itemAddPath(k));
+      toast('Undid the missing ' + tab.toLowerCase() + '.', 4000);
+    }
+    try{ autosaveSoon(); }catch(e){}
+    // Refresh just this tab's button row, without collapsing anything.
+    const row = btn.closest('.add-missing-row');
+    if (row) row.outerHTML = missingItemsHTML(tab);
+    updateBar();
   });
 
   let qTimer;
@@ -1834,6 +1908,27 @@ const VIP_TIERS = [
   function insertVirtual(bytes, virtual){
     let out=bytes;
     for(const [p, text] of virtual){
+      if(p.startsWith('__items__/player/items/')){
+        const key = p.slice('__items__/player/items/'.length);
+        if (key && !ITEM_ADD_EXCLUDED.has(key)){
+          // Fresh item, same shape the game itself writes: level 1, copies 0,
+          // evolved false, accessory_level 1, accessory_experience float64 0,
+          // inheritance_upgrades 0, empty ability_counters, cap notice 0.
+          const fresh = { key:key, level:1, copies:0, evolved:false, accessory_level:1, accessory_experience:new F64(0), inheritance_upgrades:0, ability_counters:{}, accessory_cap_notice_level:0 };
+          const { bytes:b1, mapOff } = ensureMap(out, 'player');
+          const arrOff = findChild(b1, mapOff, 'items');
+          if (arrOff === -1){
+            const keyB = encStr('items');
+            out = appendToContainer(b1, mapOff, concatBytes([keyB, mpEncode([fresh])]));
+          } else {
+            let exists = false;
+            for (const [lab] of children(b1, arrOff)){ if (lab === key) exists = true; }
+            if (exists) out = b1;
+            else out = appendToContainer(b1, arrOff, mpEncode(fresh));
+          }
+        }
+        continue;
+      }
       if(p==='__combo__/blacksmith/sharpening_unlocked'){
         const on = text==='true';
         out = replaceLeaf(out, 'blacksmith/is_unlocked', on ? Uint8Array.of(0xc3) : Uint8Array.of(0xc2));
