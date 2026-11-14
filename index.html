@@ -891,7 +891,7 @@ if (typeof module !== 'undefined') {
         if(i < 0){ skipped++; continue; }
         st.edits.set(i, text); restored++;
       }
-      for(const [path, text] of (snap.virtual || [])){ if(VIRTUAL_FIELDS.some(v => v.path === path) || path.startsWith('__items__/player/items/')) st.virtual.set(path, text); }
+      for(const [path, text] of (snap.virtual || [])){ if(VIRTUAL_FIELDS.some(v => v.path === path) || path.startsWith('__items__/player/items/') || path.startsWith('__field__/')) st.virtual.set(path, text); }
       if(restored) toast('Restored ' + restored + ' unsaved change' + (restored === 1 ? '' : 's') + ' from before the refresh.' + (skipped ? ' ' + skipped + ' skipped (no longer in this file).' : ''), 6000);
     }catch(e){}
   }
@@ -1217,21 +1217,78 @@ if (typeof module !== 'undefined') {
     return out;
   }
   function itemAddPath(key){ return '__items__/player/items/' + key; }
+
+  // ---- Add-missing-fields: one button per currency/event tab, same pattern as gear tabs ----
+  // The game writes all of these as float64 (verified in real saves).
+  // soul.winged is NOT listed: no real save contains it, so the game never writes it.
+  const ADD_MISSING_FIELDS = {
+    'Blacksmith Sharpening': [
+      { path:'currency/balances/blacksmith.coins', label:'Blacksmith Coins', kind:'float', def:'0' },
+    ],
+    'Boss Tower': [
+      { path:'currency/balances/boss_tower.tickets', label:'Tower Tickets', kind:'float', def:'0' },
+    ],
+    'Crystal System': [
+      { path:'currency/balances/crystal.geodes', label:'Geodes', kind:'float', def:'0' },
+      { path:'currency/balances/crystal.enchantment_stones', label:'Enchant Stones', kind:'float', def:'0' },
+      { path:'currency/balances/crystal.magic_dust', label:'Magic Dust', kind:'float', def:'0' },
+    ],
+    'Crystal Event': [
+      { path:'__combo__/events/red_crystal_golem', label:'Red Crystal Golem', kind:'float', def:'0' },
+      { path:'__combo__/events/blue_crystal_golem', label:'Blue Crystal Golem', kind:'float', def:'0' },
+    ],
+    'Gems and Souls': [
+      { path:'player/gems', label:'Gems', kind:'float', def:'0' },
+      { path:'currency/balances/soul.common', label:'Common Soul', kind:'float', def:'0' },
+      { path:'currency/balances/soul.large', label:'Uncommon Soul (Large)', kind:'float', def:'0' },
+      { path:'currency/balances/soul.huge', label:'Rare Soul (Huge)', kind:'float', def:'0' },
+      { path:'currency/balances/soul.great', label:'Epic Soul (Great)', kind:'float', def:'0' },
+      { path:'currency/balances/soul.elite', label:'Legendary Soul (Elite)', kind:'float', def:'0' },
+      { path:'currency/balances/soul.divine', label:'Mythic Soul (Divine)', kind:'float', def:'0' },
+      { path:'currency/balances/soul.chaotic', label:'Chaotic Soul', kind:'float', def:'0' },
+    ],
+  };
+  const ADD_MISSING_FIELD_BY_PATH = {};
+  for (const t of Object.keys(ADD_MISSING_FIELDS)) for (const f of ADD_MISSING_FIELDS[t]) ADD_MISSING_FIELD_BY_PATH[f.path] = f;
+  function fieldAddPath(f){ return f.path.startsWith('__combo__/') ? f.path : '__field__/' + f.path; }
+  function missingFieldsForTab(tab){
+    const cfg = ADD_MISSING_FIELDS[tab]; if (!cfg) return [];
+    const present = new Set(st.fields.map(f => f.path));
+    return cfg.filter(f => !present.has(f.path));
+  }
   function missingItemsHTML(tab){
-    const GEAR_TABS = ['Weapons','Shields','Helmets','Accessories'];
-    if (!GEAR_TABS.includes(tab)) return '';
     if (st.locked) return '';
-    const missing = missingItemsForTab(tab);
-    const queued = missing.filter(k => st.virtual.has(itemAddPath(k)));
-    const stillMissing = missing.filter(k => !st.virtual.has(itemAddPath(k)));
+    const GEAR_TABS = ['Weapons','Shields','Helmets','Accessories'];
+    if (GEAR_TABS.includes(tab)){
+      const missing = missingItemsForTab(tab);
+      const queued = missing.filter(k => st.virtual.has(itemAddPath(k)));
+      const stillMissing = missing.filter(k => !st.virtual.has(itemAddPath(k)));
+      let h = '<div class="add-missing-row" data-add-missing-tab="' + esc(tab) + '">';
+      if (!missing.length){
+        h += '<span class="add-missing-note">All ' + esc(tab.toLowerCase()) + ' collected \u2713</span>';
+      } else if (!stillMissing.length){
+        h += '<span class="add-missing-note">Added ' + queued.length + ' \u2713 \u2014 will add on Save.</span> ';
+        h += '<button class="btn small" type="button" data-add-missing="undo" data-tab="' + esc(tab) + '">Undo</button>';
+      } else {
+        h += '<span class="add-missing-note">Missing ' + stillMissing.length + (stillMissing.length === 1 ? ' item' : ' items') + ' in this tab: ' + stillMissing.map(k => esc(ITEM_NAMES[k] || k)).join(', ') + '</span> ';
+        h += '<button class="btn small primary" type="button" data-add-missing="add" data-tab="' + esc(tab) + '">Add missing ' + esc(tab.toLowerCase()) + '</button>';
+      }
+      h += '</div>';
+      return h;
+    }
+    const cfg = ADD_MISSING_FIELDS[tab];
+    if (!cfg) return '';
+    const missing = missingFieldsForTab(tab);
+    const queued = missing.filter(f => st.virtual.has(fieldAddPath(f)));
+    const stillMissing = missing.filter(f => !st.virtual.has(fieldAddPath(f)));
     let h = '<div class="add-missing-row" data-add-missing-tab="' + esc(tab) + '">';
     if (!missing.length){
-      h += '<span class="add-missing-note">All ' + esc(tab.toLowerCase()) + ' collected \u2713</span>';
+      h += '<span class="add-missing-note">All ' + esc(tab.toLowerCase()) + ' fields present \u2713</span>';
     } else if (!stillMissing.length){
       h += '<span class="add-missing-note">Added ' + queued.length + ' \u2713 \u2014 will add on Save.</span> ';
       h += '<button class="btn small" type="button" data-add-missing="undo" data-tab="' + esc(tab) + '">Undo</button>';
     } else {
-      h += '<span class="add-missing-note">Missing ' + stillMissing.length + (stillMissing.length === 1 ? ' item' : ' items') + ' in this tab: ' + stillMissing.map(k => esc(ITEM_NAMES[k] || k)).join(', ') + '</span> ';
+      h += '<span class="add-missing-note">Missing ' + stillMissing.length + (stillMissing.length === 1 ? ' field' : ' fields') + ' in this tab: ' + stillMissing.map(f => esc(f.label)).join(', ') + '</span> ';
       h += '<button class="btn small primary" type="button" data-add-missing="add" data-tab="' + esc(tab) + '">Add missing ' + esc(tab.toLowerCase()) + '</button>';
     }
     h += '</div>';
@@ -1561,14 +1618,28 @@ if (typeof module !== 'undefined') {
     const btn = ev.target.closest('[data-add-missing]'); if (!btn) return;
     if (st.locked) { ev.preventDefault(); return; }
     const tab = btn.dataset.tab;
-    const missing = missingItemsForTab(tab);
-    if (!missing.length) return;
-    if (btn.dataset.addMissing === 'add'){
-      for (const k of missing) st.virtual.set(itemAddPath(k), 'true');
-      toast('Added ' + missing.length + ' missing ' + tab.toLowerCase() + ' \u2014 they will be added on Save.', 6000);
+    if (ADD_MISSING_FIELDS[tab]){
+      const missing = missingFieldsForTab(tab);
+      if (!missing.length) return;
+      if (btn.dataset.addMissing === 'add'){
+        let added = 0;
+        for (const f of missing){ const vp = fieldAddPath(f); if (!st.virtual.has(vp)){ st.virtual.set(vp, f.def); added++; } }
+        toast('Added ' + added + ' missing ' + tab.toLowerCase() + ' \u2014 they will be added on Save.', 6000);
+      } else {
+        for (const f of missing) st.virtual.delete(fieldAddPath(f));
+        toast('Undid the missing ' + tab.toLowerCase() + '.', 4000);
+      }
     } else {
-      for (const k of missing) st.virtual.delete(itemAddPath(k));
-      toast('Undid the missing ' + tab.toLowerCase() + '.', 4000);
+      const missing = missingItemsForTab(tab);
+      if (!missing.length) return;
+      if (btn.dataset.addMissing === 'add'){
+        let added = 0;
+        for (const k of missing){ const vp = itemAddPath(k); if (!st.virtual.has(vp)){ st.virtual.set(vp, 'true'); added++; } }
+        toast('Added ' + added + ' missing ' + tab.toLowerCase() + ' \u2014 they will be added on Save.', 6000);
+      } else {
+        for (const k of missing) st.virtual.delete(itemAddPath(k));
+        toast('Undid the missing ' + tab.toLowerCase() + '.', 4000);
+      }
     }
     try{ autosaveSoon(); }catch(e){}
     // Refresh just this tab's button row, without collapsing anything.
@@ -1978,6 +2049,12 @@ const VIP_TIERS = [
         if(key) out = deleteMapKey(out, 'amulet/upgrade_levels', key);
         continue;
       }
+      if(p.startsWith('__field__/')){
+        const real = p.slice('__field__/'.length);
+        const cfg = ADD_MISSING_FIELD_BY_PATH[real];
+        if (cfg) out = upsertScalar(out, real, cfg.kind, text);
+        continue;
+      }
       const vf=VIRTUAL_FIELDS.find(v=>v.path===p); if(!vf) continue;
       out=insertScalar(out, p, vf.kind, text);
     }
@@ -2009,7 +2086,7 @@ const VIP_TIERS = [
      Firebase removes its entry automatically (onDisconnect), so the count drops within seconds.
      NOTE: the count is open TABS, not people - one person with 2 tabs open counts as 2.
   ================================================= */
-  var FIREBASE_CONFIG = {
+  var FIREBASE_CONFIG =  {
   apiKey: "AIzaSyA9Cz7AZUjEy1avghC4o0dfO2xTEpkSgUM",
   authDomain: "butcher-hero.firebaseapp.com",
   databaseURL: "https://butcher-hero-default-rtdb.firebaseio.com",
@@ -2018,7 +2095,7 @@ const VIP_TIERS = [
   messagingSenderId: "466977099491",
   appId: "1:466977099491:web:070669a24f634a0f09ffd6",
   measurementId: "G-VYCC2KV8MB"
-};
+}; 
 // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
   (function(){
     var el = document.getElementById('liveCount');
