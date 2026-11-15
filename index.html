@@ -201,12 +201,25 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
   <header>
     <h1>Butcher Hero<br><span>Save Editor</span></h1>
     <div id="liveCount" title="People with this page open right now"><span class="dot"></span>Connecting&hellip;</div>
-    <details class="panel tools" id="find-save">
+    <details class="panel tools" id="find-save-android">
       <summary>Where to find game_data.bin — Android</summary>
       <div class="toolsbody">
-        <p><b>Android:</b> open your file manager and go to <b>Internal storage &gt; Android &gt; data</b>, then look for the <b>Butcher Hero</b> folder (named after the game) &gt; <b>files</b> &gt; <code>game_data.bin</code>. On Android 11 and later that folder is often blocked for normal file managers — if you cannot see it, use a file manager with Shizuku / ADB access, or a PC file transfer.</p>
-        <p>If you still cannot see it, the file lives in the game&apos;s private app storage (<code>/data/data/…</code>), which needs root or ADB access to reach.</p>
+        <p>Open your file manager and go to <b>Internal storage &gt; Android &gt; data &gt; com.multicastgames.butcher &gt; files</b> &gt; <code>game_data.bin</code>. If you don&apos;t see a folder with that name, look for a <b>Butcher Hero</b> folder in the same place. On Android 11 and later that folder is often blocked for normal file managers — if you cannot see it, use a file manager with Shizuku / ADB access, or a PC file transfer.</p>
+        <p>If you still cannot see it, the file lives in the game&apos;s private app storage (<code>/data/data/com.multicastgames.butcher/…</code>), which needs root or ADB access to reach.</p>
         <p>After editing: close the game completely, <b>back up the original</b> <code>game_data.bin</code>, then put the edited file back in the <b>same place with the exact same name</b>.</p>
+      </div>
+    </details>
+    <details class="panel tools" id="find-save-iphone">
+      <summary>iPhone users (Experimental — I haven&apos;t tested this myself)</summary>
+      <div class="toolsbody">
+        <p>You can&apos;t easily replace the save file on iOS. Some players say this workaround works:</p>
+        <p>1. Edit the file on any Android phone you have, or on an Android emulator on your PC.</p>
+        <p>2. Replace the old data file with the edited one.</p>
+        <p>3. Load the game, play a little.</p>
+        <p>4. Go to Settings and save to cloud.</p>
+        <p>5. Open the game on your iPhone and load from cloud.</p>
+        <p>6. That&apos;s it.</p>
+        <p>Make sure you&apos;re logged into the same account on both devices, or the cloud save won&apos;t transfer.</p>
       </div>
     </details>
   </header>
@@ -2114,8 +2127,8 @@ const VIP_TIERS = [
   messagingSenderId: "466977099491",
   appId: "1:466977099491:web:070669a24f634a0f09ffd6",
   measurementId: "G-VYCC2KV8MB"
-};
- // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
+}; 
+// <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
   (function(){
     var el = document.getElementById('liveCount');
     if (!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey) {
