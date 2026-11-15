@@ -2098,11 +2098,14 @@ const VIP_TIERS = [
           { "rules": { "presence": { ".read": true, ".write": true } } }
        4. Project settings (gear icon) -> Your apps -> Web app (</>) -> register -> copy firebaseConfig.
        5. Paste that object into FIREBASE_CONFIG below (replace null), save, re-upload as index.html.
-     HOW IT WORKS: every open tab adds one entry under "presence". When a tab is closed,
-     Firebase removes its entry automatically (onDisconnect), so the count drops within seconds.
-     NOTE: the count is open TABS, not people - one person with 2 tabs open counts as 2.
+     HOW IT WORKS: every open tab adds one entry under "presence", but the entry
+     holds a per-browser ID (saved in localStorage, same for all tabs in that browser).
+     The count is distinct IDs, so one person with 3 tabs open counts as 1.
+     When a tab is closed, Firebase removes its entry automatically (onDisconnect).
+     NOTE: "people" = distinct browsers/devices. Same person on phone + PC counts as 2,
+     because there is no login to link them.
   ================================================= */
-  var FIREBASE_CONFIG =  {
+  var FIREBASE_CONFIG = {
   apiKey: "AIzaSyA9Cz7AZUjEy1avghC4o0dfO2xTEpkSgUM",
   authDomain: "butcher-hero.firebaseapp.com",
   databaseURL: "https://butcher-hero-default-rtdb.firebaseio.com",
@@ -2111,8 +2114,8 @@ const VIP_TIERS = [
   messagingSenderId: "466977099491",
   appId: "1:466977099491:web:070669a24f634a0f09ffd6",
   measurementId: "G-VYCC2KV8MB"
-}; 
-// <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
+};
+ // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
   (function(){
     var el = document.getElementById('liveCount');
     if (!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey) {
@@ -2126,16 +2129,37 @@ const VIP_TIERS = [
       var db = firebase.database();
       var room = 'presence/' + location.pathname.replace(/[^A-Za-z0-9]+/g, '_');
       var ref = db.ref(room);
+      // One stable ID per browser: same for every tab in that browser, different per browser/device.
+      // Stored in localStorage so it survives refreshes. Falls back to a random per-tab ID
+      // if localStorage is blocked (private mode).
+      var deviceId = null;
+      try {
+        deviceId = localStorage.getItem('bh-editor-device-id');
+        if (!deviceId) {
+          deviceId = 'd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+          localStorage.setItem('bh-editor-device-id', deviceId);
+        }
+      } catch (e) {
+        deviceId = 't_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+      }
       var me = null;
       db.ref('.info/connected').on('value', function(s){
-        if (s.val() === true && !me) { me = ref.push(true); me.onDisconnect().remove(); }
+        if (s.val() === true && !me) { me = ref.push(deviceId); me.onDisconnect().remove(); }
         if (s.val() === false) me = null;
       });
       ref.on('value', function(s){
-        var n = s.numChildren();
+        // Count DISTINCT device IDs, not entries: 1 person with 3 tabs = 1.
+        // Old entries (value === true) collapse to one extra ID during the transition.
+        var seen = {};
+        var n = 0;
+        s.forEach(function(child){
+          var v = child.val();
+          var key = (v === true || v === null || v === undefined) ? '__old__' : String(v);
+          if (!seen[key]) { seen[key] = true; n++; }
+        });
         el.innerHTML = '<span class="dot"></span>' + n + (n === 1 ? ' person' : ' people') + ' online now';
         el.classList.remove('off');
-        el.title = 'People with this page open right now (counts open tabs)';
+        el.title = 'People with this page open right now (1 person with many tabs counts as 1)';
       });
       window.addEventListener('beforeunload', function(){ if (me) me.remove(); });
     } catch (e) {
