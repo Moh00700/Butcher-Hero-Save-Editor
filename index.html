@@ -1261,6 +1261,7 @@ if (typeof module !== 'undefined') {
   }
   function missingItemsHTML(tab){
     if (st.locked) return '';
+    if (tab === 'Crystal Event') return '';
     const GEAR_TABS = ['Weapons','Shields','Helmets','Accessories'];
     if (GEAR_TABS.includes(tab)){
       const missing = missingItemsForTab(tab);
@@ -1536,6 +1537,9 @@ if (typeof module !== 'undefined') {
     // Their fields stay in the save untouched, same as every other hidden field/tab.
     st.groups.delete('achievements');
     st.groups.delete('amulet');
+    // Unlocked Stage first in Map Progress tab
+    const mapGroup = st.groups.get('Map Progress');
+    if (mapGroup) { const j = mapGroup.findIndex(x => x === 'v:' + MAP_COMBO_PATH); if (j > 0) { mapGroup.splice(j, 1); mapGroup.unshift('v:' + MAP_COMBO_PATH); } }
     // VIP combo first in its tab
     const vipGroup = st.groups.get('Vip Privileges');
     if (vipGroup) { const j = vipGroup.findIndex(x => x === 'v:' + VIP_COMBO_PATH); if (j > 0) { vipGroup.splice(j, 1); vipGroup.unshift('v:' + VIP_COMBO_PATH); } }
@@ -1854,10 +1858,10 @@ const VIP_TIERS = [
     const isVipTier=(v.kind==='tier' && v.path===VIP_COMBO_PATH);
     return '<div class="row'+(isSet?' changed':'')+(isVipTier?' vip-row':'')+'" data-vrow="'+esc(v.path)+'">' +
       '<div><div class="path">'+iconHTML+'<span><span class="dim">'+esc(parent)+'</span><b>'+esc(leaf)+'</b></span></div>' +
-      '<div class="sub">'+((v.path===COMBO_PATH || v.path===VIP_COMBO_PATH || v.path===EVENT_COMBO_PATH || v.path===ACH_RELOCK_PATH || v.path===AMULET_RELOCK_PATH) ? '' : '<span class="tag">new — will be added</span>') +
+      '<div class="sub">'+
       '<span class="fdesc"><b>'+esc(info.name)+'</b>'+(vl?' · <i>'+vl+'</i>':'')+'</span></div></div>' +
       (isVipTier?tiersHTML:'') +
-      '<div class="ctl">'+ctl+'</div><div class="hint">'+(v.path===COMBO_PATH ? 'Saves all three fields together on Save.' : v.path===VIP_COMBO_PATH ? 'Saves all four fields together on Save.' : v.path===EVENT_COMBO_PATH ? 'Saves state + activated_at_seconds together on Save.' : v.path===ACH_RELOCK_PATH ? 'On Save, flips the activation flags to false; keeps is_earned and progress.' : v.path===AMULET_RELOCK_PATH ? 'On Save, deletes the node key entirely. Souls/XP are not refunded.' : 'Not in this save — type a value, it will be added on Save.')+'</div></div>';
+      '<div class="ctl">'+ctl+'</div><div class="hint">'+(v.path===ACH_RELOCK_PATH ? 'On Save, flips the activation flags to false; keeps is_earned and progress.' : v.path===AMULET_RELOCK_PATH ? 'On Save, deletes the node key entirely. Souls/XP are not refunded.' : '')+'</div></div>';
   }
   document.addEventListener('input', ev=>{
     if (st.locked) { ev.preventDefault(); return; }
@@ -2098,7 +2102,7 @@ const VIP_TIERS = [
      Firebase removes its entry automatically (onDisconnect), so the count drops within seconds.
      NOTE: the count is open TABS, not people - one person with 2 tabs open counts as 2.
   ================================================= */
-  var FIREBASE_CONFIG = {
+  var FIREBASE_CONFIG =  {
   apiKey: "AIzaSyA9Cz7AZUjEy1avghC4o0dfO2xTEpkSgUM",
   authDomain: "butcher-hero.firebaseapp.com",
   databaseURL: "https://butcher-hero-default-rtdb.firebaseio.com",
@@ -2107,8 +2111,8 @@ const VIP_TIERS = [
   messagingSenderId: "466977099491",
   appId: "1:466977099491:web:070669a24f634a0f09ffd6",
   measurementId: "G-VYCC2KV8MB"
-};
- // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
+}; 
+// <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
   (function(){
     var el = document.getElementById('liveCount');
     if (!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey) {
