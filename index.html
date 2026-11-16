@@ -1278,19 +1278,28 @@ if (typeof module !== 'undefined') {
     const GEAR_TABS = ['Weapons','Shields','Helmets','Accessories'];
     if (GEAR_TABS.includes(tab)){
       const missing = missingItemsForTab(tab);
-      const queued = missing.filter(k => st.virtual.has(itemAddPath(k)));
-      const stillMissing = missing.filter(k => !st.virtual.has(itemAddPath(k)));
-      let h = '<div class="add-missing-row" data-add-missing-tab="' + esc(tab) + '">';
       if (!missing.length){
-        h += '<span class="add-missing-note">All ' + esc(tab.toLowerCase()) + ' collected \u2713</span>';
-      } else if (!stillMissing.length){
-        h += '<span class="add-missing-note">Added ' + queued.length + ' \u2713 \u2014 will add on Save.</span> ';
-        h += '<button class="btn small" type="button" data-add-missing="undo" data-tab="' + esc(tab) + '">Undo</button>';
-      } else {
-        h += '<span class="add-missing-note">Missing ' + stillMissing.length + (stillMissing.length === 1 ? ' item' : ' items') + ' in this tab: ' + stillMissing.map(k => esc(ITEM_NAMES[k] || k)).join(', ') + '</span> ';
-        h += '<button class="btn small primary" type="button" data-add-missing="add" data-tab="' + esc(tab) + '">Add missing ' + esc(tab.toLowerCase()) + '</button>';
+        return '<div class="add-missing-row" data-add-missing-tab="' + esc(tab) + '"><span class="add-missing-note">All ' + esc(tab.toLowerCase()) + ' collected \u2713</span></div>';
+      }
+      const queued = missing.filter(k => st.virtual.has(itemAddPath(k)));
+      let h = '<div class="add-missing-row" data-add-missing-tab="' + esc(tab) + '">';
+      h += '<details open class="add-one-by-one"><summary>Add one by one \u2014 tap an item to add just that one (tap again to undo)</summary>';
+      h += '<div class="add-one-by-one-list">';
+      for (const k of missing){
+        const isQueued = st.virtual.has(itemAddPath(k));
+        const label = esc(ITEM_NAMES[k] || k);
+        if (isQueued){
+          h += '<button class="btn small" type="button" data-add-missing="one" data-tab="' + esc(tab) + '" data-item="' + esc(k) + '">' + label + ' \u2713 queued \u2014 tap to undo</button>';
+        } else {
+          h += '<button class="btn small primary" type="button" data-add-missing="one" data-tab="' + esc(tab) + '" data-item="' + esc(k) + '">' + label + ' + Add</button>';
+        }
       }
       h += '</div>';
+      if (queued.length){
+        h += '<div class="add-one-by-one-foot"><span class="add-missing-note">' + queued.length + ' queued \u2713 \u2014 will add on Save.</span> ';
+        h += '<button class="btn small" type="button" data-add-missing="undo" data-tab="' + esc(tab) + '">Undo all</button></div>';
+      }
+      h += '</details></div>';
       return h;
     }
     const cfg = ADD_MISSING_FIELDS[tab];
@@ -1656,7 +1665,13 @@ if (typeof module !== 'undefined') {
     } else {
       const missing = missingItemsForTab(tab);
       if (!missing.length) return;
-      if (btn.dataset.addMissing === 'add'){
+      if (btn.dataset.addMissing === 'one'){
+        const k = btn.dataset.item;
+        if (!k || !missing.includes(k)) return;
+        const vp = itemAddPath(k);
+        if (st.virtual.has(vp)){ st.virtual.delete(vp); toast('Un-queued ' + (ITEM_NAMES[k] || k) + '.', 3000); }
+        else { st.virtual.set(vp, 'true'); toast('Queued ' + (ITEM_NAMES[k] || k) + ' \u2014 will add on Save.', 4000); }
+      } else if (btn.dataset.addMissing === 'add'){
         let added = 0;
         for (const k of missing){ const vp = itemAddPath(k); if (!st.virtual.has(vp)){ st.virtual.set(vp, 'true'); added++; } }
         toast('Added ' + added + ' missing ' + tab.toLowerCase() + ' \u2014 they will be added on Save.', 6000);
@@ -2128,7 +2143,17 @@ const VIP_TIERS = [
      NOTE: "people" = distinct browsers/devices. Same person on phone + PC counts as 2,
      because there is no login to link them.
   ================================================= */
-  var FIREBASE_CONFIG = null; // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
+  var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyA9Cz7AZUjEy1avghC4o0dfO2xTEpkSgUM",
+  authDomain: "butcher-hero.firebaseapp.com",
+  databaseURL: "https://butcher-hero-default-rtdb.firebaseio.com",
+  projectId: "butcher-hero",
+  storageBucket: "butcher-hero.firebasestorage.app",
+  messagingSenderId: "466977099491",
+  appId: "1:466977099491:web:070669a24f634a0f09ffd6",
+  measurementId: "G-VYCC2KV8MB"
+}; 
+// <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
   (function(){
     var el = document.getElementById('liveCount');
     if (!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey) {
