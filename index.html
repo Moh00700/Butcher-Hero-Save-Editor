@@ -558,7 +558,6 @@ function groupTitleFor(path){
   if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Blacksmith Sharpening';
   if (path === 'currency/balances/blacksmith.coins') return 'Blacksmith Sharpening';
   if (path === 'ab_tests/tests/level_pass') return 'Level Pass';
-    if (path === 'ab_tests/tests/shop_redesign') return 'Passes and Offers';
   // Crystal System: the three crystal currencies live here, not in Souls.
   if (path === 'currency/balances/crystal.geodes' || path === 'currency/balances/crystal.enchantment_stones' || path === 'currency/balances/crystal.magic_dust') return 'Crystal System';
   // Tower Tickets live in the Player tab.
@@ -585,7 +584,7 @@ function listFields(b, root) {
       // A/B tests hidden except the Level Pass variant (shown in the Level Pass tab).
       // Level Pass: only the purchased toggles show; tier progress/claims stay hidden.
       // Boss Tower: only the floor fields show; unlocks/defeats/timers stay hidden.
-      if (pth.startsWith('ab_tests/') && pth !== 'ab_tests/tests/level_pass' && pth !== 'ab_tests/tests/shop_redesign') {
+      if (pth.startsWith('ab_tests/') && pth !== 'ab_tests/tests/level_pass') {
         // skipped
       } else if (pth.startsWith('level_pass/') && !pth.endsWith('/purchased')) {
         // skipped
@@ -1115,7 +1114,6 @@ if (typeof module !== 'undefined') {
     'crystals/upgrade_levels/crystal_enchantment': { emoji: '💎', cls: 'crystal_enchantment', label: 'Enchantment' },
     'crystals/upgrade_levels/crystal_slot2_unlock': { emoji: '💎', cls: 'crystal_slot2', label: 'Second Crystal Slot' },
     'ab_tests/tests/level_pass': { emoji: '🎟️', cls: 'level_pass_ticket', label: 'Unlock Level Pass' },
-    'ab_tests/tests/shop_redesign': { emoji: '🛒', cls: 'shop_redesign', label: 'Shop Redesign' },
     'level_pass/passes/island_pass_1/purchased': { emoji: '🎟️', cls: 'level_pass_tier_1', label: 'Level Pass Tier 1 (Islands 1 - 3)' },
     'level_pass/passes/island_pass_2/purchased': { emoji: '🎟️', cls: 'level_pass_tier_2', label: 'Level Pass Tier 2 (Islands 4 - 6)' },
     'level_pass/passes/island_pass_3/purchased': { emoji: '🎟️', cls: 'level_pass_tier_3', label: 'Level Pass Tier 3 (Islands 7 - 9)' },
@@ -1164,7 +1162,6 @@ if (typeof module !== 'undefined') {
     'player/unlocked_location_number': { cat:'Map Progress', name:'Unlocked Stage', desc:'Highest location unlocked. Edited together with Boss Progress via the Unlocked Stage control in the Map Progress tab. Max 17.' },
     'player/deaths_count': { cat:'Progression & Stats', name:'Death Counter', desc:'How many times you have died.' },
     'ab_tests/tests/level_pass': { cat:'Level Pass', name:'Unlock Level Pass', desc:'Toggle ON (true) = variant B — the version that unlocks the Level Pass. Toggle OFF (false) = variant A. The game stores it as the letter B or A.' },
-    'ab_tests/tests/shop_redesign': { cat:'Passes and Offers', name:'Shop Redesign', desc:'Toggle ON (true) = variant B — new shop design. Toggle OFF (false) = variant A — old shop design. The game stores it as the letter B or A.' },
     'player/stats/0/modifiers/0/value': { cat:'Player Stats', name:'Max Health', desc:'Modifier 0 of the Max Health stat.' },
     'player/stats/2/modifiers/0/value': { cat:'Player Stats', name:'Health Regen', desc:'Modifier 0 of the Health Regen stat.' },
     'player/stats/1/modifiers/0/value': { cat:'Player Stats', name:'Movement Speed', desc:'Modifier 0 of the Movement Speed stat.' },
@@ -1391,7 +1388,6 @@ if (typeof module !== 'undefined') {
   function valueLabelFor(f, cur){
     const p=f.path;
     if (p === 'ab_tests/tests/level_pass') return cur === 'B' || cur === 'true' ? 'Variant B — Unlock' : 'Variant A';
-    if (p === 'ab_tests/tests/shop_redesign') return cur === 'B' || cur === 'true' ? 'Variant B — New shop' : 'Variant A — Old shop';
     if (f.kind==='bool'){ if(p.endsWith('/is_unlocked')) return cur==='true'?'Unlocked':'Locked'; if(p.endsWith('/evolved')) return cur==='true'?'Evolved':'Not evolved'; if(p.endsWith('/purchased')||p.includes('_purchased')) return cur==='true'?'Purchased':'Not purchased'; return cur; }
     if (p.includes('player/items/') && p.endsWith('/key')) return ITEM_SLOT[cur] || '';
     const n=parseFloat(cur); if(!isFinite(n)) return '';
@@ -1428,7 +1424,7 @@ if (typeof module !== 'undefined') {
     let ctl;
     if (isReadOnly(f.path)) {
       ctl = '<input class="num" type="text" disabled value="' + esc(cur) + '" aria-label="' + esc(f.path) + ' (read-only)">';
-    } else if (f.path === 'ab_tests/tests/level_pass' || f.path === 'ab_tests/tests/shop_redesign') {
+    } else if (f.path === 'ab_tests/tests/level_pass') {
       const on = cur === 'B' || cur === 'true';
       ctl = '<button class="switch" type="button" role="switch" aria-checked="' + on + '" data-act="toggle" aria-label="' + esc(f.path) + '"><img src="' + (on ? TOGGLE_ON_IMG : TOGGLE_OFF_IMG) + '" alt="' + (on ? 'ON' : 'OFF') + '"></button>';
     } else if (f.kind === 'bool') {
@@ -1475,7 +1471,7 @@ if (typeof module !== 'undefined') {
       if (q && !haystackHas([f.path, info && info.name, info && info.desc, cur, origText(f), valueLabelFor(f, cur), ...boolSynonyms(cur)], q)) continue;
       if (st.mode === 'changed' && !st.edits.has(i)) continue;
       if (st.mode === 'timers' && !st.timers.has(i)) continue;
-      if (st.mode === 'switches' && f.kind !== 'bool' && f.path !== 'ab_tests/tests/level_pass' && f.path !== 'ab_tests/tests/shop_redesign') continue;
+      if (st.mode === 'switches' && f.kind !== 'bool' && f.path !== 'ab_tests/tests/level_pass') continue;
       if (isHiddenGearField(f.path, groupTitleFor(f.path))) continue;
       if (groupTitleFor(f.path) === 'Player Stats' && !PLAYER_STATS_KEPT.includes(f.path)) continue;
       out.push(i);
@@ -1521,7 +1517,6 @@ if (typeof module !== 'undefined') {
     if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Blacksmith Sharpening';
     if (path === 'currency/balances/blacksmith.coins') return 'Blacksmith Sharpening';
     if (path === 'ab_tests/tests/level_pass') return 'Level Pass';
-    if (path === 'ab_tests/tests/shop_redesign') return 'Passes and Offers';
     // Crystal System: the three crystal currencies live here, not in Souls.
     if (path === 'currency/balances/crystal.geodes' || path === 'currency/balances/crystal.enchantment_stones' || path === 'currency/balances/crystal.magic_dust') return 'Crystal System';
     // Tower Tickets live in the Player tab.
@@ -1581,7 +1576,7 @@ if (typeof module !== 'undefined') {
     if (lpGroup) { const j = lpGroup.findIndex(x => typeof x === 'number' && st.fields[x].path === 'ab_tests/tests/level_pass'); if (j > 0) { const t = lpGroup.splice(j, 1)[0]; lpGroup.unshift(t); } }
     // Passes and Offers: No Ads, Soul, Crystal, Chaotic first, in that order (Crystal + Chaotic sit under Soul)
     const passGroup = st.groups.get('Passes and Offers');
-    if (passGroup) { const order = ['user/no_ads_purchased','user/soul_offer_purchased','user/crystal_offer_purchased','user/chaotic_soul_offer_purchased','ab_tests/tests/shop_redesign']; const head = order.map(p => passGroup.find(x => (typeof x === 'number' && st.fields[x].path === p) || x === 'v:' + p)).filter(x => x !== undefined); const rest = passGroup.filter(x => !head.includes(x)); passGroup.length = 0; passGroup.push(...head, ...rest); }
+    if (passGroup) { const order = ['user/no_ads_purchased','user/soul_offer_purchased','user/crystal_offer_purchased','user/chaotic_soul_offer_purchased']; const head = order.map(p => passGroup.find(x => (typeof x === 'number' && st.fields[x].path === p) || x === 'v:' + p)).filter(x => x !== undefined); const rest = passGroup.filter(x => !head.includes(x)); passGroup.length = 0; passGroup.push(...head, ...rest); }
     const list = $('#list');
     
     if (!vis.length) {
@@ -1635,7 +1630,7 @@ if (typeof module !== 'undefined') {
     const act = el.dataset.act;
     if (act === 'more') { fillGroup(el.closest('details.grp')); return; }
     const row = el.closest('.row'), i = +row.dataset.i;
-    if (act === 'toggle') { if (st.fields[i].path === 'ab_tests/tests/level_pass' || st.fields[i].path === 'ab_tests/tests/shop_redesign') setEdit(i, curText(i) === 'B' ? 'A' : 'B'); else setEdit(i, curText(i) === 'true' ? 'false' : 'true'); }
+    if (act === 'toggle') { if (st.fields[i].path === 'ab_tests/tests/level_pass') setEdit(i, curText(i) === 'B' ? 'A' : 'B'); else setEdit(i, curText(i) === 'true' ? 'false' : 'true'); }
     else if (act === 'time') { setEdit(i, el.dataset.t); const inp = row.querySelector('.num'); if (inp) inp.value = curText(i); }
     else if (act === 'undo') { setEdit(i, origText(st.fields[i])); const inp = row.querySelector('.num'); if (inp) inp.value = curText(i); }
     refreshRow(i); updateBar();
@@ -1801,7 +1796,6 @@ if (typeof module !== 'undefined') {
     { path:'crystals/upgrade_levels/crystal_slot2_unlock', kind:'int', cat:'Crystals & VIP', name:'Second Crystal Slot', desc:'Unlocks the second crystal slot. 0 = locked, 1 = unlocked. Max 1.', def:'0' },
     { path:'__combo__/map/unlocked_stage', kind:'int', cat:'Map Progress', name:'Unlocked Stage', desc:'One value for both: player/unlocked_location_number + player/boss_progress_location_number. Both are set to this on Save. Boss progress is what the game checks before allowing the next unlock, so they move together. Max 17 — values above 17 are clamped to 17 on Save.', def:'17' },
     { path:'__combo__/achievements/relock', kind:'int', cat:'Achievements', name:'Relock achievement', desc:'Type an achievement number (e.g. 4) to lock it again: on Save, is_activated, is_reward_granted, is_bonus_shown, is_toast_shown and is_seen go to false. is_earned and progress are KEPT — this matches the real before-state (earned but not activated), so you can activate it again in-game. Back up your save first.', def:'' },
-    { path:'ab_tests/tests/shop_redesign', kind:'bool', cat:'Passes and Offers', name:'Shop Redesign', desc:'Toggle ON (true) = variant B — new shop design. Toggle OFF (false) = variant A — old shop design. The game stores it as the letter B or A.', def:'false' },
     { path:'__combo__/amulet/relock_node', kind:'str', cat:'Amulet', name:'Relock Soul Tree node', desc:'Type a Soul Tree node key (e.g. graph_health_flat_1_15) to remove it entirely on Save, as if never bought. Setting the level to 0 did not re-lock it, so the key is deleted instead. Souls and amulet XP spent on it are NOT refunded. To test one node: relock it, check the Health popup, then buy it again in-game.', def:'' },
     ];
   function virtualDisplayPath(v){ if (v.path.startsWith('__combo__/')) return v.path.slice(10); return v.path.startsWith('__slots__/') ? v.path.slice(10) : v.path; }
@@ -2100,7 +2094,6 @@ const VIP_TIERS = [
         if (cfg) out = upsertScalar(out, real, cfg.kind, text);
         continue;
       }
-      if(p==='ab_tests/tests/shop_redesign'){ out=insertScalar(out, p, 'str', text==='true' ? 'B' : 'A'); continue; }
       const vf=VIRTUAL_FIELDS.find(v=>v.path===p); if(!vf) continue;
       out=insertScalar(out, p, vf.kind, text);
     }
