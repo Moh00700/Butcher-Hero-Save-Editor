@@ -1521,6 +1521,7 @@ if (typeof module !== 'undefined') {
     if (path.startsWith('shop/claimed_lots/blacksmith_coins_')) return 'Blacksmith Sharpening';
     if (path === 'currency/balances/blacksmith.coins') return 'Blacksmith Sharpening';
     if (path === 'ab_tests/tests/level_pass') return 'Level Pass';
+    if (path === 'ab_tests/tests/shop_redesign') return 'Passes and Offers';
     // Crystal System: the three crystal currencies live here, not in Souls.
     if (path === 'currency/balances/crystal.geodes' || path === 'currency/balances/crystal.enchantment_stones' || path === 'currency/balances/crystal.magic_dust') return 'Crystal System';
     // Tower Tickets live in the Player tab.
@@ -1580,7 +1581,7 @@ if (typeof module !== 'undefined') {
     if (lpGroup) { const j = lpGroup.findIndex(x => typeof x === 'number' && st.fields[x].path === 'ab_tests/tests/level_pass'); if (j > 0) { const t = lpGroup.splice(j, 1)[0]; lpGroup.unshift(t); } }
     // Passes and Offers: No Ads, Soul, Crystal, Chaotic first, in that order (Crystal + Chaotic sit under Soul)
     const passGroup = st.groups.get('Passes and Offers');
-    if (passGroup) { const order = ['user/no_ads_purchased','user/soul_offer_purchased','user/crystal_offer_purchased','user/chaotic_soul_offer_purchased','ab_tests/tests/shop_redesign']; const head = order.map(p => passGroup.find(x => typeof x === 'number' && st.fields[x].path === p)).filter(x => x !== undefined); const rest = passGroup.filter(x => !head.includes(x)); passGroup.length = 0; passGroup.push(...head, ...rest); }
+    if (passGroup) { const order = ['user/no_ads_purchased','user/soul_offer_purchased','user/crystal_offer_purchased','user/chaotic_soul_offer_purchased','ab_tests/tests/shop_redesign']; const head = order.map(p => passGroup.find(x => (typeof x === 'number' && st.fields[x].path === p) || x === 'v:' + p)).filter(x => x !== undefined); const rest = passGroup.filter(x => !head.includes(x)); passGroup.length = 0; passGroup.push(...head, ...rest); }
     const list = $('#list');
     
     if (!vis.length) {
@@ -2099,7 +2100,7 @@ const VIP_TIERS = [
         if (cfg) out = upsertScalar(out, real, cfg.kind, text);
         continue;
       }
-      if(p==='ab_tests/tests/shop_redesign'){ const _v = text==='true' ? 'B' : 'A'; const _idx = p.lastIndexOf('/'); const _par = p.slice(0,_idx); const _key = p.slice(_idx+1); const _em = ensureMap(out, _par); let _b = _em.bytes; const _mo = _em.mapOff; if(findChild(_b, _mo, _key)!==-1){ out = replaceLeaf(_b, p, encStr(_v)); } else { out = appendToContainer(_b, _mo, concatBytes([encStr(_key), encStr(_v)])); } continue; }
+      if(p==='ab_tests/tests/shop_redesign'){ out=insertScalar(out, p, 'str', text==='true' ? 'B' : 'A'); continue; }
       const vf=VIRTUAL_FIELDS.find(v=>v.path===p); if(!vf) continue;
       out=insertScalar(out, p, vf.kind, text);
     }
@@ -2144,7 +2145,7 @@ const VIP_TIERS = [
   appId: "1:466977099491:web:070669a24f634a0f09ffd6",
   measurementId: "G-VYCC2KV8MB"
 };
-// <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
+ // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
   (function(){
     var el = document.getElementById('liveCount');
     if (!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey) {
