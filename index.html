@@ -2128,17 +2128,7 @@ const VIP_TIERS = [
      NOTE: "people" = distinct browsers/devices. Same person on phone + PC counts as 2,
      because there is no login to link them.
   ================================================= */
-  var FIREBASE_CONFIG = {
-  apiKey: "AIzaSyA9Cz7AZUjEy1avghC4o0dfO2xTEpkSgUM",
-  authDomain: "butcher-hero.firebaseapp.com",
-  databaseURL: "https://butcher-hero-default-rtdb.firebaseio.com",
-  projectId: "butcher-hero",
-  storageBucket: "butcher-hero.firebasestorage.app",
-  messagingSenderId: "466977099491",
-  appId: "1:466977099491:web:070669a24f634a0f09ffd6",
-  measurementId: "G-VYCC2KV8MB"
-};
- // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
+  var FIREBASE_CONFIG = null; // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
   (function(){
     var el = document.getElementById('liveCount');
     if (!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey) {
