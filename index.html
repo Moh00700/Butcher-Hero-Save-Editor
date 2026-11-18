@@ -185,6 +185,13 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 .field-icon.level_pass_tier_1 img, .field-icon.level_pass_tier_2 img, .field-icon.level_pass_tier_3 img, .field-icon.level_pass_tier_4 img, .field-icon.level_pass_tier_5 img { width:64px; height:32px; object-fit:contain; background:transparent; }
   .add-missing-row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:8px 10px; margin:0 0 8px; background:rgba(255,255,255,.04); border:1px dashed rgba(255,255,255,.25); border-radius:8px; }
   .add-missing-note{ font-size:13px; opacity:.85; }
+  /* Add-one-by-one button lists (gear tabs + Gems and Souls): the buttons had
+     no CSS, so they stacked with zero gap and touched each other. */
+  .add-one-by-one{ width:100%; }
+  .add-one-by-one > summary{ margin-bottom:10px; cursor:pointer; }
+  .add-one-by-one-list{ display:flex; flex-wrap:wrap; gap:10px; }
+  .add-one-by-one-list .btn{ margin:0; }
+  .add-one-by-one-foot{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px; }
   .add-missing-note.warn{ color:#ff9d9d; }
 
   /* ---- LIVE VISITOR COUNTER ---- */
@@ -1282,10 +1289,24 @@ if (typeof module !== 'undefined') {
     return f ? f.label : tier;
   }
   function presentDiscoveredSoulKeys(){
+    // NOTE: do NOT read this from st.fields. 'amulet' is in REMOVED_GROUPS, so
+    // listFields() never includes amulet/* fields - st.fields has zero
+    // discovered_soul_keys entries, which made every tier look missing.
+    // Read straight from the raw save bytes instead (same bypass rawTopValue uses).
     const out = new Set();
-    for (const f of st.fields){
-      if (f.path.startsWith('amulet/discovered_soul_keys/') && typeof f.v === 'string') out.add(f.v);
-    }
+    try{
+      if (!st.bytes) return out;
+      let off = parts(st.bytes).d;
+      for (const seg of ['amulet', 'discovered_soul_keys']){
+        const kids = children(st.bytes, off);
+        const hit = kids.find(([label]) => label === seg);
+        if (!hit) return out;
+        off = hit[1];
+      }
+      for (const [, vOff] of children(st.bytes, off)){
+        if (vspan(st.bytes, vOff)[1] === 'str') out.add(rdstr(st.bytes, vOff)[0]);
+      }
+    }catch(e){}
     return out;
   }
   function discoveredSoulAddPath(tier){ return '__discovered_soul__/' + tier; }
@@ -2270,7 +2291,7 @@ const VIP_TIERS = [
   messagingSenderId: "466977099491",
   appId: "1:466977099491:web:070669a24f634a0f09ffd6",
   measurementId: "G-VYCC2KV8MB"
-}; 
+};
 // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
   (function(){
     var el = document.getElementById('liveCount');
