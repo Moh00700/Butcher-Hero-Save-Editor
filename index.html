@@ -186,11 +186,6 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
   .add-missing-row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:8px 10px; margin:0 0 8px; background:rgba(255,255,255,.04); border:1px dashed rgba(255,255,255,.25); border-radius:8px; }
   .add-missing-note{ font-size:13px; opacity:.85; }
   .add-missing-note.warn{ color:#ff9d9d; }
-  .add-one-by-one{ width:100%; }
-  .add-one-by-one summary{ cursor:pointer; padding:2px 0 8px; }
-  .add-one-by-one-list{ display:flex; flex-wrap:wrap; gap:10px; padding:2px 0 10px; }
-  .add-one-by-one-list .btn{ margin:0; }
-  .add-one-by-one-foot{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding-top:2px; }
 
   /* ---- LIVE VISITOR COUNTER ---- */
   #liveCount{display:inline-flex;gap:7px;align-items:center;align-self:center;background:rgba(0,0,0,.45);color:#fff;border:1px solid rgba(255,255,255,.25);padding:5px 11px;border-radius:999px;font-size:13px;font-family:inherit}
@@ -908,7 +903,7 @@ if (typeof module !== 'undefined') {
         if(i < 0){ skipped++; continue; }
         st.edits.set(i, text); restored++;
       }
-      for(const [path, text] of (snap.virtual || [])){ if(VIRTUAL_FIELDS.some(v => v.path === path) || path.startsWith('__items__/player/items/') || path.startsWith('__field__/')) st.virtual.set(path, text); }
+      for(const [path, text] of (snap.virtual || [])){ if(VIRTUAL_FIELDS.some(v => v.path === path) || path.startsWith('__items__/player/items/') || path.startsWith('__field__/') || path.startsWith('__discovered_soul__/')) st.virtual.set(path, text); }
       if(restored) toast('Restored ' + restored + ' unsaved change' + (restored === 1 ? '' : 's') + ' from before the refresh.' + (skipped ? ' ' + skipped + ' skipped (no longer in this file).' : ''), 6000);
     }catch(e){}
   }
@@ -1273,6 +1268,77 @@ if (typeof module !== 'undefined') {
     const present = new Set(st.fields.map(f => f.path));
     return cfg.filter(f => !present.has(f.path));
   }
+  // ---- Combined soul buttons for 'Gems and Souls' ----
+  // One button per soul tier. It fixes BOTH sides at once when either is missing:
+  //   * currency/balances/soul.<tier>  (the balance, added as float 0)
+  //   * amulet/discovered_soul_keys    (the tier string, e.g. 'chaotic')
+  // If only one side is missing, the button adds only that side.
+  // If a tier has a balance but is not discovered, the game can treat it as
+  // undiscovered-but-owned, so both must stay in sync.
+  const SOUL_TIERS = ['common','large','huge','great','elite','divine','chaotic'];
+  function soulTierLabel(tier){
+    const cfg = ADD_MISSING_FIELDS['Gems and Souls'] || [];
+    const f = cfg.find(x => x.path === 'currency/balances/soul.' + tier);
+    return f ? f.label : tier;
+  }
+  function presentDiscoveredSoulKeys(){
+    const out = new Set();
+    for (const f of st.fields){
+      if (f.path.startsWith('amulet/discovered_soul_keys/') && typeof f.v === 'string') out.add(f.v);
+    }
+    return out;
+  }
+  function discoveredSoulAddPath(tier){ return '__discovered_soul__/' + tier; }
+  function soulBalancePath(tier){ return 'currency/balances/soul.' + tier; }
+  function soulBalanceMissing(tier){
+    return !st.fields.some(f => f.path === soulBalancePath(tier));
+  }
+  function soulDiscoveredMissing(tier){
+    return !presentDiscoveredSoulKeys().has(tier);
+  }
+  function missingSoulCombos(){
+    return SOUL_TIERS.filter(k => soulBalanceMissing(k) || soulDiscoveredMissing(k));
+  }
+  function isSoulComboQueued(tier){
+    return st.virtual.has('__field__/' + soulBalancePath(tier)) || st.virtual.has(discoveredSoulAddPath(tier));
+  }
+  function combinedSoulHTML(tab){
+    if (tab !== 'Gems and Souls') return '';
+    const missing = missingSoulCombos();
+    const gemsMissing = !st.fields.some(f => f.path === 'player/gems');
+    const gemsQueued = st.virtual.has('__field__/player/gems');
+    if (!missing.length && !gemsMissing) return '';
+    let h = '<details open class="add-one-by-one"><summary>Add one by one \u2014 tap a soul to add just that one (tap again to undo)</summary>';
+    h += '<div class="add-one-by-one-list">';
+    for (const k of missing){
+      const isQueued = isSoulComboQueued(k);
+      const label = esc(soulTierLabel(k));
+      const parts = [];
+      if (soulBalanceMissing(k)) parts.push('balance');
+      if (soulDiscoveredMissing(k)) parts.push('discovered');
+      const hint = parts.join(' + ');
+      if (isQueued){
+        h += '<button class="btn small" type="button" data-add-missing="soulcombo" data-tab="' + esc(tab) + '" data-item="' + esc(k) + '">' + label + ' \u2713 queued \u2014 tap to undo</button>';
+      } else {
+        h += '<button class="btn small primary" type="button" data-add-missing="soulcombo" data-tab="' + esc(tab) + '" data-item="' + esc(k) + '">' + label + ' + Add <small>(' + esc(hint) + ')</small></button>';
+      }
+    }
+    if (gemsMissing){
+      if (gemsQueued){
+        h += '<button class="btn small" type="button" data-add-missing="field-one" data-tab="' + esc(tab) + '" data-field="player/gems">Gems \u2713 queued \u2014 tap to undo</button>';
+      } else {
+        h += '<button class="btn small primary" type="button" data-add-missing="field-one" data-tab="' + esc(tab) + '" data-field="player/gems">Gems + Add</button>';
+      }
+    }
+    h += '</div>';
+    const queuedCount = missing.filter(k => isSoulComboQueued(k)).length + (gemsQueued ? 1 : 0);
+    if (queuedCount){
+      h += '<div class="add-one-by-one-foot"><span class="add-missing-note">' + queuedCount + ' queued \u2713 \u2014 will add on Save.</span> ';
+      h += '<button class="btn small" type="button" data-add-missing="soulcombo-undo" data-tab="' + esc(tab) + '">Undo all</button></div>';
+    }
+    h += '</details>';
+    return h;
+  }
   function tabNoteHTML(tab){
     if (tab === 'Map Progress') return '<div class="add-missing-row"><span class="add-missing-note">Max location is 17 — do not set above 17. Unlocked Stage sets both Unlocked + Boss Progress.</span></div>';
     return '';
@@ -1309,6 +1375,13 @@ if (typeof module !== 'undefined') {
     }
     const cfg = ADD_MISSING_FIELDS[tab];
     if (!cfg) return '';
+    if (tab === 'Gems and Souls'){
+      const combo = combinedSoulHTML(tab);
+      if (!combo){
+        return '<div class="add-missing-row" data-add-missing-tab="' + esc(tab) + '"><span class="add-missing-note">All ' + esc(tab.toLowerCase()) + ' fields present \u2713</span></div>';
+      }
+      return '<div class="add-missing-row" data-add-missing-tab="' + esc(tab) + '">' + combo + '</div>';
+    }
     const missing = missingFieldsForTab(tab);
     const queued = missing.filter(f => st.virtual.has(fieldAddPath(f)));
     const stillMissing = missing.filter(f => !st.virtual.has(fieldAddPath(f)));
@@ -1656,7 +1729,30 @@ if (typeof module !== 'undefined') {
     const btn = ev.target.closest('[data-add-missing]'); if (!btn) return;
     if (st.locked) { ev.preventDefault(); return; }
     const tab = btn.dataset.tab;
-    if (ADD_MISSING_FIELDS[tab]){
+    if (btn.dataset.addMissing === 'soulcombo'){
+      const k = btn.dataset.item;
+      if (!k || !missingSoulCombos().includes(k)) return;
+      const balVp = '__field__/' + soulBalancePath(k);
+      const discVp = discoveredSoulAddPath(k);
+      if (isSoulComboQueued(k)){
+        st.virtual.delete(balVp); st.virtual.delete(discVp);
+        toast('Un-queued ' + soulTierLabel(k) + '.', 3000);
+      } else {
+        if (soulBalanceMissing(k)) st.virtual.set(balVp, '0');
+        if (soulDiscoveredMissing(k)) st.virtual.set(discVp, 'true');
+        toast('Queued ' + soulTierLabel(k) + ' \u2014 will add on Save.', 4000);
+      }
+    } else if (btn.dataset.addMissing === 'soulcombo-undo'){
+      for (const k of missingSoulCombos()){ st.virtual.delete('__field__/' + soulBalancePath(k)); st.virtual.delete(discoveredSoulAddPath(k)); }
+      st.virtual.delete('__field__/player/gems');
+      toast('Undid the queued souls / gems.', 4000);
+    } else if (btn.dataset.addMissing === 'field-one'){
+      const fp = btn.dataset.field;
+      if (!fp) return;
+      const vp = '__field__/' + fp;
+      if (st.virtual.has(vp)){ st.virtual.delete(vp); toast('Un-queued Gems.', 3000); }
+      else { st.virtual.set(vp, '0'); toast('Queued Gems \u2014 will add on Save.', 4000); }
+    } else if (ADD_MISSING_FIELDS[tab]){
       const missing = missingFieldsForTab(tab);
       if (!missing.length) return;
       if (btn.dataset.addMissing === 'add'){
@@ -2108,6 +2204,23 @@ const VIP_TIERS = [
         if(key) out = deleteMapKey(out, 'amulet/upgrade_levels', key);
         continue;
       }
+      if(p.startsWith('__discovered_soul__/')){
+        const tier = p.slice('__discovered_soul__/'.length);
+        if (tier){
+          const { bytes:b1, mapOff } = ensureMap(out, 'amulet');
+          const arrOff = findChild(b1, mapOff, 'discovered_soul_keys');
+          if (arrOff === -1){
+            out = appendToContainer(b1, mapOff, concatBytes([encStr('discovered_soul_keys'), mpEncode([tier])]));
+          } else {
+            let exists = false;
+            for (const [, vOff] of children(b1, arrOff)){
+              if (vspan(b1, vOff)[1] === 'str' && rdstr(b1, vOff)[0] === tier) exists = true;
+            }
+            out = exists ? b1 : appendToContainer(b1, arrOff, encStr(tier));
+          }
+        }
+        continue;
+      }
       if(p.startsWith('__field__/')){
         const real = p.slice('__field__/'.length);
         const cfg = ADD_MISSING_FIELD_BY_PATH[real];
@@ -2148,7 +2261,7 @@ const VIP_TIERS = [
      NOTE: "people" = distinct browsers/devices. Same person on phone + PC counts as 2,
      because there is no login to link them.
   ================================================= */
-  var FIREBASE_CONFIG = {
+  var FIREBASE_CONFIG =  {
   apiKey: "AIzaSyA9Cz7AZUjEy1avghC4o0dfO2xTEpkSgUM",
   authDomain: "butcher-hero.firebaseapp.com",
   databaseURL: "https://butcher-hero-default-rtdb.firebaseio.com",
