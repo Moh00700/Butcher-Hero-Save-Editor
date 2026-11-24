@@ -1838,6 +1838,15 @@ if (typeof module !== 'undefined') {
         if (Number.isFinite(maxV)) setEdit(remI, String(st.fields[maxI].v));
         else skipped++;
       }
+      // Death only: the game also gates this spawner on saved_count / cleared_once,
+      // which the normal timer+charges reset never touches. Other spawners keep
+      // exactly the old behaviour (saved_count 0 + cleared_once 1 = already defeated).
+      if (name.toLowerCase().includes('death')) {
+        const savedI = byPath.get(base + '/saved_count');
+        const clearedI = byPath.get(base + '/cleared_once');
+        if (savedI !== undefined) setEdit(savedI, '1');
+        if (clearedI !== undefined) setEdit(clearedI, '0');
+      }
       const perI = byPath.get(base + '/charges_sync_period');
       const lastI = byPath.get(base + '/last_spawn_time');
       if (lastI !== undefined) {
@@ -2282,7 +2291,7 @@ const VIP_TIERS = [
      NOTE: "people" = distinct browsers/devices. Same person on phone + PC counts as 2,
      because there is no login to link them.
   ================================================= */
-  var FIREBASE_CONFIG =  {
+  var FIREBASE_CONFIG =   {
   apiKey: "AIzaSyA9Cz7AZUjEy1avghC4o0dfO2xTEpkSgUM",
   authDomain: "butcher-hero.firebaseapp.com",
   databaseURL: "https://butcher-hero-default-rtdb.firebaseio.com",
@@ -2291,7 +2300,7 @@ const VIP_TIERS = [
   messagingSenderId: "466977099491",
   appId: "1:466977099491:web:070669a24f634a0f09ffd6",
   measurementId: "G-VYCC2KV8MB"
-};
+}; 
 // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
   (function(){
     var el = document.getElementById('liveCount');
