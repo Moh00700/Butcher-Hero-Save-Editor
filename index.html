@@ -2015,7 +2015,7 @@ const VIP_TIERS = [
     const info=fieldInfoFor(v.path) || { name:v.name, desc:v.desc };
     // value label for virtual: use a fake field object
     let vl='';
-    if (v.path !== COMBO_PATH && v.path !== VIP_COMBO_PATH && v.path !== EVENT_COMBO_PATH) {
+    if (v.path !== COMBO_PATH && v.path !== VIP_COMBO_PATH && v.path !== EVENT_COMBO_PATH && v.path !== EVENT_END_COMBO_PATH) {
       try{ vl=valueLabelHTML({path:v.path, kind:v.kind}, cur||v.def); }catch(e){}
     }
     let ctl='';
@@ -2324,7 +2324,8 @@ const VIP_TIERS = [
   messagingSenderId: "466977099491",
   appId: "1:466977099491:web:070669a24f634a0f09ffd6",
   measurementId: "G-VYCC2KV8MB"
-}; // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
+}; 
+// <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
   (function(){
     var el = document.getElementById('liveCount');
     if (!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey) {
