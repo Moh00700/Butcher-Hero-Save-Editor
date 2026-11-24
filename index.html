@@ -1929,7 +1929,7 @@ if (typeof module !== 'undefined') {
   const VIRTUAL_FIELDS = [
     { path:'__combo__/blacksmith/sharpening_unlocked', kind:'bool', cat:'Blacksmith Sharpening', name:'Unlock Blacksmith Sharpening', desc:'One switch for all three: ON = blacksmith unlocked + tutorial seen + A/B variant C. OFF = both false + variant A.', def:'false' },
     { path:'__combo__/events/make_ready_now', kind:'bool', cat:'Crystal Event', name:'Make Event Ready Now', desc:'One switch for the event: ON = state 1 + activated_at_seconds = now. OFF = state 0 + activated_at_seconds = 0.', def:'false' },
-     { path:'__combo__/events/end_event_now', kind:'bool', cat:'Crystal Event', name:'End Golem Event Now', desc:'One switch to end a running event: ON = keeps state 1, sets activated_at_seconds to now - 2 hours - extra_duration - 60s, so the game sees the event as already ended. Only applies if an event is running (events/state = 1, or Make Event Ready Now is also ON). A running event can have activated_at_seconds = 0 with the event in snapshot_data, so state is the guard, not activated. OFF = no change.', def:'false' },
+     { path:'__combo__/events/end_event_now', kind:'bool', cat:'Crystal Event', name:'End Golem Event Now', desc:'One switch to end a running event: ON = keeps state 1, sets activated_at_seconds to now - 2 hours - extra_duration - 60s, so the game sees the event as already ended. Only applies if an event is running (events/state = 1, or Make Event Ready Now is also ON). Turning this ON turns Make Event Ready Now OFF, and vice versa. A running event can have activated_at_seconds = 0 with the event in snapshot_data, so state is the guard, not activated. OFF = no change.', def:'false' },
     { path:'__combo__/events/red_crystal_golem', kind:'float', cat:'Crystal Event', name:'Red Crystal Golem', desc:'One value for both: events/currencies/red_crystal + events/collected_currencies/red_crystal. Both are set to this on Save.', def:'0' },
     { path:'__combo__/events/blue_crystal_golem', kind:'float', cat:'Crystal Event', name:'Blue Crystal Golem', desc:'One value for both: events/currencies/blue_crystal + events/collected_currencies/blue_crystal. Both are set to this on Save.', def:'0' },
     { path:'__combo__/vip/privileges', kind:'tier', cat:'Vip Privileges', name:'VIP Privileges', desc:'Pick one VIP tier (0–10). Sets that tier\u2019s VIP points — spend + the four VIP points fields — on Save.', def:'0' },
@@ -2053,7 +2053,7 @@ const VIP_TIERS = [
   });
   document.addEventListener('click', ev=>{
     if (st.locked && (ev.target.closest('[data-vpath]') || ev.target.closest('[data-vadd]') || ev.target.closest('[data-vundo]'))) { ev.preventDefault(); return; }
-    const sw=ev.target.closest('[data-vpath]'); if(sw){ const p=sw.dataset.vpath; const on=sw.getAttribute('aria-checked')!=='true'; st.virtual.set(p, on?'true':'false'); try{ autosaveSoon(); }catch(e){} sw.setAttribute('aria-checked', String(on)); const swImg2 = sw.querySelector('img'); if (swImg2) { swImg2.src = on ? TOGGLE_ON_IMG : TOGGLE_OFF_IMG; swImg2.alt = on ? 'ON' : 'OFF'; } const row=sw.closest('.row'); if(row){ row.classList.add('changed'); const u=row.querySelector('[data-vundo]'); if(u) u.hidden=false; } updateBar(); return; }
+    const sw=ev.target.closest('[data-vpath]'); if(sw){ const p=sw.dataset.vpath; const on=sw.getAttribute('aria-checked')!=='true'; st.virtual.set(p, on?'true':'false'); if (on && (p===EVENT_END_COMBO_PATH || p===EVENT_COMBO_PATH)) { const other = p===EVENT_END_COMBO_PATH ? EVENT_COMBO_PATH : EVENT_END_COMBO_PATH; st.virtual.set(other, 'false'); const oRow=document.querySelector('[data-vrow="'+other+'"]'); if(oRow){ const oSw=oRow.querySelector('[data-vpath]'); if(oSw){ oSw.setAttribute('aria-checked','false'); const oImg=oSw.querySelector('img'); if(oImg){ oImg.src=TOGGLE_OFF_IMG; oImg.alt='OFF'; } } oRow.classList.add('changed'); const oU=oRow.querySelector('[data-vundo]'); if(oU) oU.hidden=false; } } try{ autosaveSoon(); }catch(e){} sw.setAttribute('aria-checked', String(on)); const swImg2 = sw.querySelector('img'); if (swImg2) { swImg2.src = on ? TOGGLE_ON_IMG : TOGGLE_OFF_IMG; swImg2.alt = on ? 'ON' : 'OFF'; } const row=sw.closest('.row'); if(row){ row.classList.add('changed'); const u=row.querySelector('[data-vundo]'); if(u) u.hidden=false; } updateBar(); return; }
     const add=ev.target.closest('[data-vadd]'); if(add){ const p=add.dataset.vadd; if(st.virtual.has(p)){ st.virtual.delete(p); add.textContent='Add on Save'; } else { st.virtual.set(p,'true'); try{ autosaveSoon(); }catch(e){} add.textContent='Added ✓ — will add on Save'; } const row=add.closest('.row'); if(row){ row.classList.toggle('changed', st.virtual.has(p)); const u=row.querySelector('[data-vundo]'); if(u) u.hidden=!st.virtual.has(p); } updateBar(); return; }
     const undo=ev.target.closest('[data-vundo]'); if(undo){ const p=undo.dataset.vundo; st.virtual.delete(p); const row=undo.closest('.row'); if(row){ row.classList.remove('changed'); undo.hidden=true; const inp=row.querySelector('[data-vinput]'); if(inp) inp.value=''; const sw2=row.querySelector('[data-vpath]'); if(sw2){ const v=VIRTUAL_FIELDS.find(x=>x.path===p); const on=v && (v.path===COMBO_PATH ? comboCurrent() : v.path===EVENT_COMBO_PATH ? eventComboCurrent() : v.def==='true'); sw2.setAttribute('aria-checked', String(on)); const swImg3 = sw2.querySelector('img'); if (swImg3) { swImg3.src = on ? TOGGLE_ON_IMG : TOGGLE_OFF_IMG; swImg3.alt = on ? 'ON' : 'OFF'; } } const tierInputs=row.querySelectorAll('[data-vtier]'); if(tierInputs.length){ const curT = (p===VIP_COMBO_PATH ? vipTier() : (parseInt((VIRTUAL_FIELDS.find(x=>x.path===p)||{}).def||'0',10)||0)); tierInputs.forEach(r=>{ r.checked = (parseInt(r.dataset.vtier,10)===curT); const lab=r.closest('.vip-tier'); if(lab) lab.classList.toggle('sel', r.checked); }); } const ad=row.querySelector('[data-vadd]'); if(ad) ad.textContent='Add on Save'; } updateBar(); }
   });
@@ -2270,7 +2270,7 @@ const VIP_TIERS = [
     // extra_duration is read from the already-edited save (or the typed edit).
     try{
       if (virtual.get(EVENT_END_COMBO_PATH)==='true'){
-        const endState = (virtual.has(EVENT_COMBO_PATH) ? (virtual.get(EVENT_COMBO_PATH)==='true' ? 1 : 0) : (Number(rawTopValue('events/state')) || 0));
+        const endState = (virtual.get(EVENT_COMBO_PATH)==='true' ? 1 : (Number(rawTopValue('events/state')) || 0)); // NOTE: an explicit Make='false' (forced off by End itself) must not block End - raw state is the running check.
         // NOTE: a running event can have activated_at_seconds = 0 (event lives in snapshot_data),
         // so do NOT require activated > 0 here - state = 1 is the running guard.
         if (endState === 1){
@@ -2285,7 +2285,7 @@ const VIP_TIERS = [
       }
     }catch(e){}
     // Rule: if events/state ends up 0, red/blue golem + extra_duration are all 0 (overwrites any value typed while off)
-    try{ const finalState = virtual.has(EVENT_COMBO_PATH) ? (virtual.get(EVENT_COMBO_PATH)==='true' ? 1 : 0) : (Number(rawTopValue('events/state')) || 0); if (finalState === 0) { out = replaceLeaf(out, 'events/currencies/red_crystal', encVal('float', '0')); out = replaceLeaf(out, 'events/collected_currencies/red_crystal', encVal('float', '0')); out = replaceLeaf(out, 'events/currencies/blue_crystal', encVal('float', '0')); out = replaceLeaf(out, 'events/collected_currencies/blue_crystal', encVal('float', '0')); const exF = st.fields.find(f => f.path === 'events/extra_duration'); if (exF) out = replaceLeaf(out, 'events/extra_duration', encVal(exF.kind, '0')); } }catch(e){}
+    try{ const endKeepsRunning = virtual.get(EVENT_END_COMBO_PATH)==='true' && (virtual.get(EVENT_COMBO_PATH)==='true' || (Number(rawTopValue('events/state')) || 0) === 1); const finalState = endKeepsRunning ? 1 : (virtual.has(EVENT_COMBO_PATH) ? (virtual.get(EVENT_COMBO_PATH)==='true' ? 1 : 0) : (Number(rawTopValue('events/state')) || 0)); if (finalState === 0) { out = replaceLeaf(out, 'events/currencies/red_crystal', encVal('float', '0')); out = replaceLeaf(out, 'events/collected_currencies/red_crystal', encVal('float', '0')); out = replaceLeaf(out, 'events/currencies/blue_crystal', encVal('float', '0')); out = replaceLeaf(out, 'events/collected_currencies/blue_crystal', encVal('float', '0')); const exF = st.fields.find(f => f.path === 'events/extra_duration'); if (exF) out = replaceLeaf(out, 'events/extra_duration', encVal(exF.kind, '0')); } }catch(e){}
     resign(out);
     return out;
   }
@@ -2324,8 +2324,7 @@ const VIP_TIERS = [
   messagingSenderId: "466977099491",
   appId: "1:466977099491:web:070669a24f634a0f09ffd6",
   measurementId: "G-VYCC2KV8MB"
-};
- // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
+}; // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
   (function(){
     var el = document.getElementById('liveCount');
     if (!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey) {
