@@ -207,6 +207,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 <div class="wrap">
   <header>
     <h1>Butcher Hero<br><span>Save Editor</span></h1>
+    <p style="margin:4px 0 0;font-size:13px;opacity:.85"><b style="color:#22c55e">Changelog:</b> Death (Grim Reaper) Respawn fixed &mdash; Respawn now also resets Death&rsquo;s saved_count and cleared_once, so the Grim Reaper spawns again.</p>
     <div id="liveCount" title="People with this page open right now"><span class="dot"></span>Connecting&hellip;</div>
     <details class="panel tools" id="find-save-android">
       <summary>Where to find game_data.bin — Android</summary>
@@ -2291,7 +2292,7 @@ const VIP_TIERS = [
      NOTE: "people" = distinct browsers/devices. Same person on phone + PC counts as 2,
      because there is no login to link them.
   ================================================= */
-  var FIREBASE_CONFIG =   {
+  var FIREBASE_CONFIG = {
   apiKey: "AIzaSyA9Cz7AZUjEy1avghC4o0dfO2xTEpkSgUM",
   authDomain: "butcher-hero.firebaseapp.com",
   databaseURL: "https://butcher-hero-default-rtdb.firebaseio.com",
