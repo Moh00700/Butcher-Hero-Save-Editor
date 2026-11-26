@@ -207,10 +207,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 <div class="wrap">
   <header>
     <h1>Butcher Hero<br><span>Save Editor</span></h1>
-    <p style="margin:4px 0 0;font-size:13px;opacity:.85"><b style="color:#22c55e">Changelog:</b><br>
-    * Fixed: Death (Grim Reaper) Respawn Now<br>
-    * New: End & Reset Crystal Event Now button in Crystal Event.<br><br>
-    * Fixed: Level Pass toggle now visually flips OFF.</p>
+    <details style="margin:4px 0 0;font-size:13px;opacity:.85"><summary style="cursor:pointer"><b style="color:#22c55e">Changelog</b> <span style="opacity:.7">(click to show)</span></summary><div style="margin-top:4px">* Death (Grim Reaper) Respawn fixed<br>* New: End & Reset Crystal Event Now button in Crystal Event (replaces End + Reset).<br>* Fixed: End & Reset now writes activated_at_seconds ONCE (End timestamp only) - no more End vs Reset conflict.<br>* Changed: End & Reset no longer subtracts the 60s buffer - timestamp is now - 7200 - extra_duration exactly.<br>* Changed: End & Reset now sets events/state = 2 (was 1).<br>* Fixed: Level Pass toggle now visually flips OFF.<br>* Fixed: End & Reset no longer fails with "unexpected end of file" (container-aware rebuild).</div></details>
     <div id="liveCount" title="People with this page open right now"><span class="dot"></span>Connecting&hellip;</div>
     <details class="panel tools" id="find-save-android">
       <summary>Where to find game_data.bin — Android</summary>
@@ -1990,7 +1987,7 @@ if (typeof module !== 'undefined') {
   const VIRTUAL_FIELDS = [
     { path:'__combo__/blacksmith/sharpening_unlocked', kind:'bool', cat:'Blacksmith Sharpening', name:'Unlock Blacksmith Sharpening', desc:'One switch for all three: ON = blacksmith unlocked + tutorial seen + A/B variant C. OFF = both false + variant A.', def:'false' },
     { path:'__combo__/events/make_ready_now', kind:'bool', cat:'Crystal Event', name:'Make Event Ready Now', desc:'One switch for the event: ON = state 1 + activated_at_seconds = now. OFF = state 0 + activated_at_seconds = 0.', def:'false' },
-     { path:'__combo__/events/end_reset_event_now', kind:'bool', cat:'Crystal Event', name:'End & Reset Crystal Event Now', desc:'EXPERIMENTAL - test on a backup save first. One switch that ends the current event AND resets it to a clean slate. ON = deletes events/snapshot_data + empties events/currencies + empties events/collected_currencies + extra_duration = 0 + state 1 + crystals/stat 1 + activated_at_seconds = now - 2 hours - extra_duration (written ONCE - the old extra counts, since it is read before it is zeroed, no 60s buffer). The game sees a clean ended event and rolls to a fresh event on its own. OFF = no change. Turning this ON turns Make Event Ready Now OFF, and vice versa. Do NOT use this to end an event you want rewards from - clearing currencies before the game settles the event can delete those rewards.', def:'false' },
+     { path:'__combo__/events/end_reset_event_now', kind:'bool', cat:'Crystal Event', name:'End & Reset Crystal Event Now', desc:'EXPERIMENTAL - test on a backup save first. One switch that ends the current event AND resets it to a clean slate. ON = deletes events/snapshot_data + empties events/currencies + empties events/collected_currencies + extra_duration = 0 + state 2 + crystals/stat 1 + activated_at_seconds = now - 2 hours - extra_duration (written ONCE - the old extra counts, since it is read before it is zeroed, no 60s buffer). The game sees a clean ended event and rolls to a fresh event on its own. OFF = no change. Turning this ON turns Make Event Ready Now OFF, and vice versa. Do NOT use this to end an event you want rewards from - clearing currencies before the game settles the event can delete those rewards.', def:'false' },
     { path:'__combo__/events/red_crystal_golem', kind:'float', cat:'Crystal Event', name:'Red Crystal Golem', desc:'One value for both: events/currencies/red_crystal + events/collected_currencies/red_crystal. Both are set to this on Save.', def:'0' },
     { path:'__combo__/events/blue_crystal_golem', kind:'float', cat:'Crystal Event', name:'Blue Crystal Golem', desc:'One value for both: events/currencies/blue_crystal + events/collected_currencies/blue_crystal. Both are set to this on Save.', def:'0' },
     { path:'__combo__/vip/privileges', kind:'tier', cat:'Vip Privileges', name:'VIP Privileges', desc:'Pick one VIP tier (0–10). Sets that tier\u2019s VIP points — spend + the four VIP points fields — on Save.', def:'0' },
@@ -2024,7 +2021,7 @@ if (typeof module !== 'undefined') {
   const EVENT_BLUE_COMBO_PATH = '__combo__/events/blue_crystal_golem';
   const MAP_COMBO_PATH = '__combo__/map/unlocked_stage';
   function mapUnlockedCurrent(){ try{ const v = rawTopValue('player/unlocked_location_number'); return (typeof v === 'number' ? v : 17); }catch(e){ return 17; } }
-  function effectiveEventState(){ try{ if (st.virtual.get(EVENT_END_RESET_COMBO_PATH)==='true') return 1; if (st.virtual.has(EVENT_COMBO_PATH)) return st.virtual.get(EVENT_COMBO_PATH)==='true' ? 1 : 0; return Number(rawTopValue('events/state')) || 0; }catch(e){ return 0; } }
+  function effectiveEventState(){ try{ if (st.virtual.get(EVENT_END_RESET_COMBO_PATH)==='true') return 2; if (st.virtual.has(EVENT_COMBO_PATH)) return st.virtual.get(EVENT_COMBO_PATH)==='true' ? 1 : 0; return Number(rawTopValue('events/state')) || 0; }catch(e){ return 0; } }
   function eventRedCurrent(){ try{ if (effectiveEventState() === 0) return 0; }catch(e){}  try{ const a = rawTopValue('events/currencies/red_crystal'); if (typeof a === 'number') return a; const b = rawTopValue('events/collected_currencies/red_crystal'); return (typeof b === 'number' ? b : 0); }catch(e){ return 0; } }
   function eventBlueCurrent(){ try{ if (effectiveEventState() === 0) return 0; }catch(e){}  try{ const a = rawTopValue('events/currencies/blue_crystal'); if (typeof a === 'number') return a; const b = rawTopValue('events/collected_currencies/blue_crystal'); return (typeof b === 'number' ? b : 0); }catch(e){ return 0; } }
   const VIP_COMBO_PATH = '__combo__/vip/privileges';
@@ -2343,13 +2340,13 @@ const VIP_TIERS = [
         out = replaceValue(out, 'events/currencies', Uint8Array.of(0x80));
         out = replaceValue(out, 'events/collected_currencies', Uint8Array.of(0x80));
         try{ out = replaceLeaf(out, 'events/extra_duration', encVal('float', '0')); }catch(e){}
-        out = upsertScalar(out, 'events/state', 'int', '1');
+        out = upsertScalar(out, 'events/state', 'int', '2');
         out = upsertScalar(out, 'events/activated_at_seconds', 'int', String(endAt));
         out = replaceLeaf(out, 'crystals/stat', encVal('int', '1'));
       }
     }catch(e){}
     // Rule: if events/state ends up 0, red/blue golem + extra_duration are all 0 (overwrites any value typed while off)
-    try{ const finalState = (virtual.get(EVENT_END_RESET_COMBO_PATH)==='true') ? 1 : (virtual.has(EVENT_COMBO_PATH) ? (virtual.get(EVENT_COMBO_PATH)==='true' ? 1 : 0) : (Number(rawTopValue('events/state')) || 0)); if (finalState === 0) { out = replaceLeaf(out, 'events/currencies/red_crystal', encVal('float', '0')); out = replaceLeaf(out, 'events/collected_currencies/red_crystal', encVal('float', '0')); out = replaceLeaf(out, 'events/currencies/blue_crystal', encVal('float', '0')); out = replaceLeaf(out, 'events/collected_currencies/blue_crystal', encVal('float', '0')); const exF = st.fields.find(f => f.path === 'events/extra_duration'); if (exF) out = replaceLeaf(out, 'events/extra_duration', encVal(exF.kind, '0')); } }catch(e){}
+    try{ const finalState = (virtual.get(EVENT_END_RESET_COMBO_PATH)==='true') ? 2 : (virtual.has(EVENT_COMBO_PATH) ? (virtual.get(EVENT_COMBO_PATH)==='true' ? 1 : 0) : (Number(rawTopValue('events/state')) || 0)); if (finalState === 0) { out = replaceLeaf(out, 'events/currencies/red_crystal', encVal('float', '0')); out = replaceLeaf(out, 'events/collected_currencies/red_crystal', encVal('float', '0')); out = replaceLeaf(out, 'events/currencies/blue_crystal', encVal('float', '0')); out = replaceLeaf(out, 'events/collected_currencies/blue_crystal', encVal('float', '0')); const exF = st.fields.find(f => f.path === 'events/extra_duration'); if (exF) out = replaceLeaf(out, 'events/extra_duration', encVal(exF.kind, '0')); } }catch(e){}
     resign(out);
     return out;
   }
@@ -2379,7 +2376,7 @@ const VIP_TIERS = [
      NOTE: "people" = distinct browsers/devices. Same person on phone + PC counts as 2,
      because there is no login to link them.
   ================================================= */
-  var FIREBASE_CONFIG = {
+  var FIREBASE_CONFIG =   {
   apiKey: "AIzaSyA9Cz7AZUjEy1avghC4o0dfO2xTEpkSgUM",
   authDomain: "butcher-hero.firebaseapp.com",
   databaseURL: "https://butcher-hero-default-rtdb.firebaseio.com",
