@@ -207,7 +207,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 <div class="wrap">
   <header>
     <h1>Butcher Hero<br><span>Save Editor</span></h1>
-    <p style="margin:4px 0 0;font-size:13px;opacity:.85"><b style="color:#22c55e">Changelog:</b><br>* Death (Grim Reaper) Respawn fixed<br>* New: End Golem Event Now button in Crystal Event.<br>* Fixed: Level Pass toggle now visually flips OFF.</p>
+    <p style="margin:4px 0 0;font-size:13px;opacity:.85"><b style="color:#22c55e">Changelog:</b><br>* Death (Grim Reaper) Respawn fixed<br>* New: End Golem Event Now button in Crystal Event.<br>* Fixed: Level Pass toggle now visually flips OFF.<br>* Fixed: Reset Event Fresh no longer fails with "unexpected end of file".</p>
     <div id="liveCount" title="People with this page open right now"><span class="dot"></span>Connecting&hellip;</div>
     <details class="panel tools" id="find-save-android">
       <summary>Where to find game_data.bin — Android</summary>
@@ -1008,6 +1008,64 @@ if (typeof module !== 'undefined') {
     return bytes;
   }
   
+
+  // Container-aware helpers: vspan() returns null as the end for maps/arrays,
+  // so scalar-only helpers (replaceLeaf / deleteMapKey) corrupt container
+  // values. snapshot_data, currencies and collected_currencies are all maps,
+  // so Reset Event Fresh must use these. skip() walks containers correctly.
+  function valueEnd(bytes, off){ const [end] = vspan(bytes, off); return end === null ? skip(bytes, off) : end; }
+  function replaceValue(bytes, fullPath, valBytes){
+    let off = parts(bytes).d;
+    const segs = fullPath.split('/');
+    for(let s=0;s<segs.length;s++){
+      const kids = children(bytes, off);
+      const hit = kids.find(([label])=>label===segs[s]);
+      if(!hit) return bytes;
+      off = hit[1];
+    }
+    const end = valueEnd(bytes, off);
+    return concatBytes([bytes.subarray(0, off), valBytes, bytes.subarray(end)]);
+  }
+  function deleteMapKeyDeep(bytes, mapPath, key){
+    // Same as deleteMapKey, but the deleted value may be a map/array (e.g. snapshot_data).
+    try{
+      let off = parts(bytes).d;
+      const segs = mapPath.split('/');
+      for(const s of segs){
+        const kids = children(bytes, off);
+        const hit = kids.find(([label])=>label===s);
+        if(!hit) return bytes;
+        off = hit[1];
+      }
+      const first = bytes[off];
+      let hdrLen, count, countPos = -1;
+      if(first >= 0x80 && first <= 0x8f){ hdrLen = 1; count = first - 0x80; }
+      else if(first === 0xde){ hdrLen = 3; count = (bytes[off+1] << 8) | bytes[off+2]; countPos = off + 1; }
+      else if(first === 0xdf){ hdrLen = 5; count = ((bytes[off+1] << 24) | (bytes[off+2] << 16) | (bytes[off+3] << 8) | bytes[off+4]) >>> 0; countPos = off + 1; }
+      else return bytes;
+      let p = off + hdrLen;
+      for(let i = 0; i < count; i++){
+        const kEnd = valueEnd(bytes, p);
+        const vEnd = valueEnd(bytes, kEnd);
+        let keyStr = null;
+        try{ if(vspan(bytes, p)[1] === 'str') keyStr = rdstr(bytes, p)[0]; }catch(e){}
+        if(keyStr === key){
+          const out = new Uint8Array(bytes.length - (vEnd - p));
+          out.set(bytes.subarray(0, p), 0);
+          out.set(bytes.subarray(vEnd), p);
+          if(countPos >= 0){
+            if(first === 0xde){ out[countPos] = ((count - 1) >> 8) & 0xff; out[countPos + 1] = (count - 1) & 0xff; }
+            else { out[countPos] = ((count - 1) >>> 24) & 0xff; out[countPos + 1] = ((count - 1) >>> 16) & 0xff; out[countPos + 2] = ((count - 1) >>> 8) & 0xff; out[countPos + 3] = (count - 1) & 0xff; }
+          } else {
+            out[off] = 0x80 | (count - 1);
+          }
+          return out;
+        }
+        p = vEnd;
+      }
+    }catch(e){}
+    return bytes;
+  }
 
   function loadBytes(b, name) {
     let d, valid, fields;
@@ -2290,9 +2348,9 @@ const VIP_TIERS = [
     // NO guard - it applies whenever it is ON. Experimental: test on a backup save first.
     try{
       if (virtual.get(EVENT_RESET_COMBO_PATH)==='true'){
-        out = deleteMapKey(out, 'events', 'snapshot_data');
-        out = replaceLeaf(out, 'events/currencies', Uint8Array.of(0x80));
-        out = replaceLeaf(out, 'events/collected_currencies', Uint8Array.of(0x80));
+        out = deleteMapKeyDeep(out, 'events', 'snapshot_data');
+        out = replaceValue(out, 'events/currencies', Uint8Array.of(0x80));
+        out = replaceValue(out, 'events/collected_currencies', Uint8Array.of(0x80));
         out = upsertScalar(out, 'events/state', 'int', '1');
         out = upsertScalar(out, 'events/activated_at_seconds', 'int', String(Math.floor(Date.now() / 1000)));
         out = replaceLeaf(out, 'crystals/stat', encVal('int', '1'));
@@ -2339,8 +2397,7 @@ const VIP_TIERS = [
   messagingSenderId: "466977099491",
   appId: "1:466977099491:web:070669a24f634a0f09ffd6",
   measurementId: "G-VYCC2KV8MB"
-};
- // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
+}; // <-- PASTE YOUR firebaseConfig OBJECT HERE, e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"...", ... }
   (function(){
     var el = document.getElementById('liveCount');
     if (!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey) {
