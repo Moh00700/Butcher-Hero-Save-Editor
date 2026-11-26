@@ -207,7 +207,7 @@ textarea.num.big { flex: 1 1 100%; min-width: 0; min-height: 240px; resize: vert
 <div class="wrap">
   <header>
     <h1>Butcher Hero<br><span>Save Editor</span></h1>
-    <details style="margin:4px 0 0;font-size:13px;opacity:.85"><summary style="cursor:pointer"><b style="color:#22c55e">Changelog</b> <span style="opacity:.7">(click to show)</span></summary><div style="margin-top:4px">* Death (Grim Reaper) Respawn fixed<br>* New: End & Reset Crystal Event Now button in Crystal Event (replaces End + Reset).<br>* Fixed: End & Reset now writes activated_at_seconds ONCE (End timestamp only) - no more End vs Reset conflict.<br>* Changed: End & Reset no longer subtracts the 60s buffer - timestamp is now - 7200 - extra_duration exactly.<br>* Changed: End & Reset now sets events/state = 2 (was 1).<br>* Changed: End & Reset no longer deletes snapshot_data or empties currencies - snapshot and currencies stay so the game settles the ended event itself.<br>* Fixed: Level Pass toggle now visually flips OFF.<br>* Fixed: End & Reset no longer fails with "unexpected end of file" (container-aware rebuild).</div></details>
+    <details style="margin:4px 0 0;font-size:13px;opacity:.85"><summary style="cursor:pointer"><b style="color:#22c55e">Changelog</b> <span style="opacity:.7">(click to show)</span></summary><div style="margin-top:4px">* Fixed: Level Pass toggle now visually flips OFF.<br>* Fixed: Death (Grim Reaper) Respawn Now<br>* New: End & Reset Crystal Event Now button in Crystal Event.</div></details>
     <div id="liveCount" title="People with this page open right now"><span class="dot"></span>Connecting&hellip;</div>
     <details class="panel tools" id="find-save-android">
       <summary>Where to find game_data.bin — Android</summary>
